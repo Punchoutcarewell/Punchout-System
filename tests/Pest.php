@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Punchout\Data\OrderRequestData;
@@ -90,6 +91,15 @@ function issueTestPunchoutSession(): PunchoutSession
     test()->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     return PunchoutSession::query()->firstOrFail();
+}
+
+function actingAsAdmin(): User
+{
+    $user = User::factory()->create();
+
+    test()->actingAs($user);
+
+    return $user;
 }
 
 function sampleOrderRequestData(string $poNumber = 'PO-1'): OrderRequestData

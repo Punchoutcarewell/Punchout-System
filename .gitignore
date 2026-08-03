@@ -16,6 +16,10 @@
 /public/build
 /public/hot
 /public/storage
+# Republished automatically by filament:upgrade on every composer install
+# (see composer.json's post-autoload-dump), not source we maintain.
+/public/css/filament
+/public/js/filament
 /storage/*.key
 /storage/pail
 /database/database.sqlite
