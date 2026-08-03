@@ -1,8 +1,11 @@
 <?php
 
+use App\Modules\Catalog\Models\Category;
+use App\Modules\Catalog\Models\Product;
 use App\Modules\Punchout\Enums\PunchoutEnvironment;
 use App\Modules\Punchout\Models\PunchoutCredential;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /*
@@ -58,4 +61,33 @@ function createTestPunchoutCredential(string $sharedSecret = 'ALD'): PunchoutCre
         'protocol' => 'cxml',
         'is_active' => true,
     ]);
+}
+
+function createTestCategory(string $name = 'Wound Care'): Category
+{
+    return Category::query()->create([
+        'name' => $name,
+        'slug' => Str::slug($name),
+        'position' => 0,
+    ]);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ */
+function createTestProduct(array $overrides = []): Product
+{
+    return Product::query()->create(array_merge([
+        'sku' => 'CW-'.random_int(100000, 999999),
+        'supplier_part_id' => 'CW-4021',
+        'name' => 'Foam Wound Dressing 10cm, Pack of 10',
+        'description' => 'Foam Wound Dressing 10cm, Pack of 10',
+        'unspsc_code' => '42311505',
+        'unit_of_measure' => 'BX',
+        'pack_size' => 10,
+        'lead_time_days' => 2,
+        'list_price' => '29.99',
+        'currency' => 'AUD',
+        'is_active' => true,
+    ], $overrides));
 }

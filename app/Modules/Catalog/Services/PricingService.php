@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Catalog\Services;
+
+use App\Modules\Catalog\Contracts\PricingServiceInterface;
+use App\Modules\Catalog\Data\ContractPriceSnapshot;
+use App\Modules\Catalog\Exceptions\ProductNotFoundException;
+use App\Modules\Catalog\Models\Product;
+use App\Shared\Exceptions\DomainValidationException;
+use App\Shared\ValueObjects\Money;
+use App\Shared\ValueObjects\UnspscCode;
+
+final class PricingService implements PricingServiceInterface
+{
+    public function resolveContractPrice(string $sku, string $currency): ContractPriceSnapshot
+    {
+        $product = Product::query()->where('sku', $sku)->where('is_active', true)->first();
+
+        if ($product === null) {
+            throw ProductNotFoundException::withContext(
+                "No active product found for SKU [{$sku}].",
+                ['sku' => $sku],
+            );
+        }
+
+        if (strtoupper($product->currency) !== strtoupper($currency)) {
+            throw DomainValidationException::withContext(
+                "Product [{$sku}] is priced in {$product->currency}, not the requested {$currency}. Currency conversion is not supported.",
+                ['sku' => $sku, 'product_currency' => $product->currency, 'requested_currency' => $currency],
+            );
+        }
+
+        $activeContract = $product->activeContractPrice();
+
+        $contractPrice = $activeContract !== null
+            ? Money::fromDecimal($activeContract->price, $activeContract->currency)
+            : Money::fromDecimal($product->list_price, $product->currency);
+
+        return new ContractPriceSnapshot(
+            sku: $product->sku,
+            contractPrice: $contractPrice,
+            listPrice: Money::fromDecimal($product->list_price, $product->currency),
+            unitOfMeasure: $product->unit_of_measure,
+            unspscCode: UnspscCode::fromString($product->unspsc_code),
+            leadTimeDays: $product->lead_time_days,
+            description: $product->name,
+            supplierPartAuxiliaryId: $product->supplier_part_auxiliary_id,
+            manufacturerPartId: $product->manufacturer_part_id,
+            manufacturerName: $product->manufacturer_name,
+        );
+    }
+}
