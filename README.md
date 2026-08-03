@@ -23,7 +23,7 @@ A modular monolith, one deployable application internally split into modules wit
 | `Cart` | Done | Cart state, quantity rules, the same-origin JSON cart API, the protocol-neutral snapshot Punchout's `OrderMessageBuilder` consumes |
 | `Orders` | Done | Purchase orders received from Coupa (via Punchout's `OrderRequestController`), queued notification email, idempotent on `po_number` |
 | `Storefront` | Not started | Vue 3 + Inertia.js pages, the composition layer over Catalog and Cart |
-| `Admin` | Not started | Filament v3 panel |
+| `Admin` | Done | Filament v3 panel: Product, Category, ContractPrice, PunchoutCredential (write-only secret), PurchaseOrder (read-only) |
 
 Each module lives under `app/Modules/<Name>/` with its own `Contracts/`, `Models/`, `Services/`, `database/migrations/`, and its own service provider that registers its bindings, migrations, routes, and console commands. Nothing about a module needs to be scattered across a central kernel file to add it.
 
@@ -38,7 +38,15 @@ php artisan migrate
 
 Local development runs on sqlite by default (`database/database.sqlite`, created automatically). No further setup is needed to run the app or the test suite. Staging and production are configured for PostgreSQL, credentials are environment-driven, never committed.
 
-Punchout credentials (test and production) are managed entirely through the database, via the Admin module's Filament resource once that module exists. There is deliberately no other way to set them, they never live in a migration, seeder, or `.env` file.
+Punchout credentials (test and production) are managed entirely through the database, via the Admin module's Filament resource. There is deliberately no other way to set them, they never live in a migration, seeder, or `.env` file.
+
+To create the first admin login:
+
+```bash
+php artisan make:filament-user
+```
+
+Then sign in at `/admin`. Every `User` row is an admin by definition, there is no separate buyer account system anywhere in this application, punchout buyers only ever carry a session token, never a login.
 
 ## Testing and quality gates
 
