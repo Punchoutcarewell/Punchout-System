@@ -38,6 +38,9 @@ final class CartItem extends Model
     {
         return [
             'quantity' => 'integer',
+            // See Catalog\Models\Product::casts() for why this is explicit
+            // rather than left uncast.
+            'unit_price' => 'decimal:2',
         ];
     }
 

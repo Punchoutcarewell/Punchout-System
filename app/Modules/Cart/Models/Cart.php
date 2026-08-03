@@ -26,6 +26,15 @@ final class Cart extends Model
 
     protected $fillable = ['session_id', 'total', 'currency'];
 
+    protected function casts(): array
+    {
+        // See Catalog\Models\Product::casts() for why this is explicit
+        // rather than left uncast.
+        return [
+            'total' => 'decimal:2',
+        ];
+    }
+
     /**
      * @return HasMany<CartItem, $this>
      */

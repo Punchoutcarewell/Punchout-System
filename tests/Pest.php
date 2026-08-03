@@ -2,9 +2,12 @@
 
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Punchout\Data\OrderRequestData;
+use App\Modules\Punchout\Data\OrderRequestLineData;
 use App\Modules\Punchout\Enums\PunchoutEnvironment;
 use App\Modules\Punchout\Models\PunchoutCredential;
 use App\Modules\Punchout\Models\PunchoutSession;
+use App\Shared\ValueObjects\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -87,6 +90,26 @@ function issueTestPunchoutSession(): PunchoutSession
     test()->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     return PunchoutSession::query()->firstOrFail();
+}
+
+function sampleOrderRequestData(string $poNumber = 'PO-1'): OrderRequestData
+{
+    return new OrderRequestData(
+        poNumber: $poNumber,
+        orderDate: new DateTimeImmutable('2026-08-10T10:00:00-05:00'),
+        total: Money::fromDecimal('25.99', 'AUD'),
+        buyerReference: 'REQ-123',
+        lines: [
+            new OrderRequestLineData(
+                lineNumber: 1,
+                supplierPartId: 'CW-4021',
+                quantity: 1,
+                unitPrice: Money::fromDecimal('25.99', 'AUD'),
+                unitOfMeasure: 'BX',
+                description: 'Foam Wound Dressing',
+            ),
+        ],
+    );
 }
 
 /**

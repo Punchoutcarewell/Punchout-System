@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Punchout\Http\Controllers;
 
+use App\Modules\Orders\Contracts\PurchaseOrderServiceInterface;
 use App\Modules\Punchout\Cxml\CxmlProtocol;
 use App\Modules\Punchout\Data\OrderResponseData;
 use App\Modules\Punchout\Enums\PunchoutMessageType;
@@ -23,17 +24,17 @@ use Illuminate\Http\Response;
  * an order.
  *
  * Turning the parsed OrderRequestData into a PurchaseOrder business record
- * belongs to the Orders module, which does not exist yet. This endpoint
- * already does everything that is this module's job: receive, log,
- * validate the XML, and acknowledge. Wiring the Orders module in is a
- * single call to a PurchaseOrderService once that module ships; nothing
- * about this controller's own responsibilities changes when that happens.
+ * is a single call to Orders\Contracts\PurchaseOrderServiceInterface: this
+ * controller's own job stays receive, log, validate the XML, and
+ * acknowledge, it has no idea what a PurchaseOrder does with the data
+ * afterward.
  */
 final class OrderRequestController
 {
     public function __construct(
         private readonly CxmlProtocol $protocol,
         private readonly PunchoutLogger $logger,
+        private readonly PurchaseOrderServiceInterface $purchaseOrders,
     ) {}
 
     public function handle(Request $request): Response
@@ -43,7 +44,7 @@ final class OrderRequestController
         $this->logger->logInbound(PunchoutMessageType::OrderRequest, $rawXml);
 
         try {
-            $this->protocol->parseOrderRequest($rawXml);
+            $data = $this->protocol->parseOrderRequest($rawXml);
         } catch (MalformedCxmlException $exception) {
             $this->logger->logInbound(PunchoutMessageType::OrderRequest, $rawXml, httpStatus: 400, error: $exception->getMessage());
 
@@ -52,6 +53,8 @@ final class OrderRequestController
                 400,
             );
         }
+
+        $this->purchaseOrders->receive($data, $rawXml);
 
         $responseXml = $this->protocol->buildOrderResponse(OrderResponseData::accepted());
 

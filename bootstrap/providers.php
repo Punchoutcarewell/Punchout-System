@@ -2,6 +2,7 @@
 
 use App\Modules\Cart\CartServiceProvider;
 use App\Modules\Catalog\CatalogServiceProvider;
+use App\Modules\Orders\OrdersServiceProvider;
 use App\Modules\Punchout\PunchoutServiceProvider;
 use App\Providers\AppServiceProvider;
 
@@ -10,4 +11,5 @@ return [
     PunchoutServiceProvider::class,
     CatalogServiceProvider::class,
     CartServiceProvider::class,
+    OrdersServiceProvider::class,
 ];

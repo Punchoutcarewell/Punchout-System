@@ -62,6 +62,11 @@ final class Product extends Model
             'is_active' => 'boolean',
             'pack_size' => 'integer',
             'lead_time_days' => 'integer',
+            // Explicit decimal cast: sqlite's PDO driver returns an
+            // uncast decimal column as a PHP float, MySQL/Postgres return
+            // a string. This forces a consistent fixed-precision string
+            // on every driver, which is what Money::fromDecimal() expects.
+            'list_price' => 'decimal:2',
         ];
     }
 
