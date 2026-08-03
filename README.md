@@ -1,59 +1,66 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Carewell PunchOut Catalogue
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A PunchOut catalogue integration for Carewell Group, connecting to Amazon Business buyers through Amazon's Coupa procurement instance. Buyers click through from Coupa, shop this storefront, and their cart is transferred back into Coupa as a requisition, using the cXML PunchOut protocol.
 
-## About Laravel
+This is not a general purpose storefront with a protocol bolted on. The cXML layer is the actual product, the storefront is the interface to it. See `carewell-punchout-architecture.md` (kept alongside this repository, not inside it) for the full system design and the reasoning behind it.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Laravel 12, PHP 8.3+
+- PostgreSQL in staging and production, sqlite for local development and the test suite
+- cXML 1.2, the only protocol Coupa's own configuration accepts
+- Pest for testing, PHPStan at level 6, Pint for code style
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Architecture
 
-## Learning Laravel
+A modular monolith, one deployable application internally split into modules with hard boundaries. A module's internals are private, other modules only depend on its `Contracts/` interfaces and the DTOs they return, never on its Eloquent models directly. This is what makes it safe to change one module without breaking another.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+| Module | Status | Owns |
+|---|---|---|
+| `Shared` | Done | `Money` and `UnspscCode` value objects, base exception hierarchy |
+| `Punchout` | Done | cXML setup/start/order-request round trip, credential validation, session lifecycle, wire logging |
+| `Catalog` | Done | Products, categories, UNSPSC reference data, contract pricing, search, CSV import, `catalog:validate` |
+| `Cart` | Not started | Cart state, quantity rules, the protocol-neutral cart snapshot Punchout's `OrderMessageBuilder` consumes |
+| `Orders` | Not started | Purchase orders received from Coupa, notification email |
+| `Storefront` | Not started | Vue 3 + Inertia.js pages, the composition layer over Catalog and Cart |
+| `Admin` | Not started | Filament v3 panel |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Each module lives under `app/Modules/<Name>/` with its own `Contracts/`, `Models/`, `Services/`, `database/migrations/`, and its own service provider that registers its bindings, migrations, routes, and console commands. Nothing about a module needs to be scattered across a central kernel file to add it.
 
-## Laravel Sponsors
+## Getting started
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+```
 
-### Premium Partners
+Local development runs on sqlite by default (`database/database.sqlite`, created automatically). No further setup is needed to run the app or the test suite. Staging and production are configured for PostgreSQL, credentials are environment-driven, never committed.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Punchout credentials (test and production) are managed entirely through the database, via the Admin module's Filament resource once that module exists. There is deliberately no other way to set them, they never live in a migration, seeder, or `.env` file.
 
-## Contributing
+## Testing and quality gates
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php vendor/bin/pest              # test suite
+php vendor/bin/phpstan analyse   # static analysis, level 6
+php vendor/bin/pint              # code style, --test to check without fixing
+```
 
-## Code of Conduct
+All three run clean on every commit to `main`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Useful artisan commands
 
-## Security Vulnerabilities
+```bash
+php artisan punchout:simulate            # exercises the setup, start, and order-request round trip against this app's own endpoints
+php artisan catalog:import <path>        # import a catalogue CSV, producing a report rather than failing silently
+php artisan catalog:validate             # fail if any active product is missing a UNSPSC code, contract price, unit of measure, or description
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## A note on two open items
 
-## License
+- `OrderRequestParser` (the inbound purchase order) is built against the standard cXML `OrderRequest` structure, no sample PO payload exists in any of the source documents this project was built from, so this has not been validated against a real Coupa-issued specimen yet.
+- `OrderRequestController` does not currently validate a shared secret on the inbound PO, since it is not confirmed whether Coupa sends one on that message type, and the PO transmission channel itself (CSP, email, or cXML) is still unconfirmed with GPCS.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Both are flagged directly in the relevant code's docblocks and should be resolved once GPCS answers those questions.
