@@ -21,7 +21,7 @@ A modular monolith, one deployable application internally split into modules wit
 | `Punchout` | Done | cXML setup/start/order-request round trip, credential validation, session lifecycle, wire logging |
 | `Catalog` | Done | Products, categories, UNSPSC reference data, contract pricing, search, CSV import, `catalog:validate` |
 | `Cart` | Done | Cart state, quantity rules, the same-origin JSON cart API, the protocol-neutral snapshot Punchout's `OrderMessageBuilder` consumes |
-| `Orders` | Not started | Purchase orders received from Coupa, notification email |
+| `Orders` | Done | Purchase orders received from Coupa (via Punchout's `OrderRequestController`), queued notification email, idempotent on `po_number` |
 | `Storefront` | Not started | Vue 3 + Inertia.js pages, the composition layer over Catalog and Cart |
 | `Admin` | Not started | Filament v3 panel |
 
@@ -58,9 +58,10 @@ php artisan catalog:import <path>        # import a catalogue CSV, producing a r
 php artisan catalog:validate             # fail if any active product is missing a UNSPSC code, contract price, unit of measure, or description
 ```
 
-## A note on two open items
+## A note on open items
 
 - `OrderRequestParser` (the inbound purchase order) is built against the standard cXML `OrderRequest` structure, no sample PO payload exists in any of the source documents this project was built from, so this has not been validated against a real Coupa-issued specimen yet.
 - `OrderRequestController` does not currently validate a shared secret on the inbound PO, since it is not confirmed whether Coupa sends one on that message type, and the PO transmission channel itself (CSP, email, or cXML) is still unconfirmed with GPCS.
+- `ORDERS_NOTIFICATION_EMAIL` (`config/orders.php`) defaults to a placeholder address, set it in `.env` before this matters in any real environment.
 
-Both are flagged directly in the relevant code's docblocks and should be resolved once GPCS answers those questions.
+All three are flagged directly in the relevant code's docblocks and should be resolved once GPCS answers those questions.
