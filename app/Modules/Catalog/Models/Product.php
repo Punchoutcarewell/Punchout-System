@@ -60,6 +60,7 @@ final class Product extends Model
     {
         return [
             'is_active' => 'boolean',
+            'category_id' => 'integer',
             'pack_size' => 'integer',
             'lead_time_days' => 'integer',
             // Explicit decimal cast: sqlite's PDO driver returns an

@@ -22,6 +22,20 @@ final class Category extends Model
     protected $fillable = ['parent_id', 'name', 'slug', 'position'];
 
     /**
+     * See Catalog\Models\Product::casts() for why this is explicit rather
+     * than left uncast: MySQL's PDO driver returns an uncast integer
+     * column as a PHP string outside the primary key, which fails a
+     * strictly typed ?int/int DTO property or parameter.
+     */
+    protected function casts(): array
+    {
+        return [
+            'parent_id' => 'integer',
+            'position' => 'integer',
+        ];
+    }
+
+    /**
      * @return BelongsTo<Category, $this>
      */
     public function parent(): BelongsTo

@@ -45,6 +45,7 @@ final class PurchaseOrderLine extends Model
     protected function casts(): array
     {
         return [
+            'purchase_order_id' => 'integer',
             'line_number' => 'integer',
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',

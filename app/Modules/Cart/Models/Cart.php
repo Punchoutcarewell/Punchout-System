@@ -31,6 +31,7 @@ final class Cart extends Model
         // See Catalog\Models\Product::casts() for why this is explicit
         // rather than left uncast.
         return [
+            'session_id' => 'integer',
             'total' => 'decimal:2',
         ];
     }

@@ -44,6 +44,7 @@ final class PunchoutLog extends Model
     protected function casts(): array
     {
         return [
+            'session_id' => 'integer',
             'direction' => PunchoutMessageDirection::class,
             'message_type' => PunchoutMessageType::class,
             'created_at' => 'datetime',

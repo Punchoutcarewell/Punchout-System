@@ -27,6 +27,7 @@ final class ContractPrice extends Model
     {
         return [
             // See Product::casts() for why this is explicit rather than left uncast.
+            'product_id' => 'integer',
             'price' => 'decimal:2',
             'effective_from' => 'date',
             'effective_to' => 'date',

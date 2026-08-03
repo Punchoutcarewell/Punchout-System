@@ -37,6 +37,7 @@ final class CartItem extends Model
     protected function casts(): array
     {
         return [
+            'cart_id' => 'integer',
             'quantity' => 'integer',
             // See Catalog\Models\Product::casts() for why this is explicit
             // rather than left uncast.
