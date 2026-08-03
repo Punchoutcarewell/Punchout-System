@@ -16,6 +16,7 @@ final readonly class ContractPriceSnapshot
 {
     public function __construct(
         public string $sku,
+        public string $supplierPartId,
         public Money $contractPrice,
         public Money $listPrice,
         public string $unitOfMeasure,

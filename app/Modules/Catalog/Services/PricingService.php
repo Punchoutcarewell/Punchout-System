@@ -40,6 +40,7 @@ final class PricingService implements PricingServiceInterface
 
         return new ContractPriceSnapshot(
             sku: $product->sku,
+            supplierPartId: $product->supplier_part_id,
             contractPrice: $contractPrice,
             listPrice: Money::fromDecimal($product->list_price, $product->currency),
             unitOfMeasure: $product->unit_of_measure,

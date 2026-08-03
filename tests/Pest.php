@@ -4,6 +4,7 @@ use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Punchout\Enums\PunchoutEnvironment;
 use App\Modules\Punchout\Models\PunchoutCredential;
+use App\Modules\Punchout\Models\PunchoutSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -70,6 +71,22 @@ function createTestCategory(string $name = 'Wound Care'): Category
         'slug' => Str::slug($name),
         'position' => 0,
     ]);
+}
+
+/**
+ * Runs a real /punchout/setup request to get a genuinely bound
+ * PunchoutSession, the same round trip a browser would go through, rather
+ * than inserting a session row by hand.
+ */
+function issueTestPunchoutSession(): PunchoutSession
+{
+    createTestPunchoutCredential('ALD');
+
+    $xml = (string) file_get_contents(dirname(__DIR__).'/tests/Fixtures/Cxml/setup_request.xml');
+
+    test()->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+
+    return PunchoutSession::query()->firstOrFail();
 }
 
 /**
