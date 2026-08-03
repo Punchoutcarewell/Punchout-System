@@ -20,7 +20,7 @@ A modular monolith, one deployable application internally split into modules wit
 | `Shared` | Done | `Money` and `UnspscCode` value objects, base exception hierarchy |
 | `Punchout` | Done | cXML setup/start/order-request round trip, credential validation, session lifecycle, wire logging |
 | `Catalog` | Done | Products, categories, UNSPSC reference data, contract pricing, search, CSV import, `catalog:validate` |
-| `Cart` | Not started | Cart state, quantity rules, the protocol-neutral cart snapshot Punchout's `OrderMessageBuilder` consumes |
+| `Cart` | Done | Cart state, quantity rules, the same-origin JSON cart API, the protocol-neutral snapshot Punchout's `OrderMessageBuilder` consumes |
 | `Orders` | Not started | Purchase orders received from Coupa, notification email |
 | `Storefront` | Not started | Vue 3 + Inertia.js pages, the composition layer over Catalog and Cart |
 | `Admin` | Not started | Filament v3 panel |
