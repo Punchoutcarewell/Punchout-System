@@ -19,10 +19,6 @@ use Symfony\Component\HttpFoundation\Cookie;
  * Partitioned so it survives Coupa's iframe embedding, and redirects with
  * the token still on the URL as the fallback for a browser that blocks
  * the cookie this same request just tried to set.
- *
- * The redirect destination is a placeholder ('/') until the Storefront
- * module ships its catalogue index route; session resolution and cookie
- * binding, this controller's actual job, are already complete.
  */
 final class StartController
 {
@@ -34,12 +30,12 @@ final class StartController
         $session = $token !== '' ? $this->sessions->resolve($token) : null;
 
         if ($session === null) {
-            return redirect('/')->with('punchout_error', 'expired_or_invalid_token');
+            return redirect()->route('storefront.session-expired');
         }
 
         $this->sessions->bind($session);
 
-        $response = redirect('/?'.ResolvePunchoutSession::QUERY_PARAM.'='.urlencode($session->token));
+        $response = redirect()->route('storefront.catalog', [ResolvePunchoutSession::QUERY_PARAM => $session->token]);
 
         $response->headers->setCookie(Cookie::create(
             name: ResolvePunchoutSession::COOKIE_NAME,

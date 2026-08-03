@@ -15,6 +15,13 @@ return new class extends Migration
             $table->string('token', 64)->unique();
             $table->text('buyer_cookie');
             $table->text('browser_form_post_url');
+            // Captured from the inbound PunchOutSetupRequest so the
+            // outbound PunchOutOrderMessage can reverse them (From/To
+            // swap identity roles between the two message directions).
+            $table->string('from_domain')->nullable();
+            $table->string('from_identity')->nullable();
+            $table->string('to_domain')->nullable();
+            $table->string('to_identity')->nullable();
             $table->string('buyer_user_email')->nullable();
             $table->string('buyer_unique_name')->nullable();
             $table->string('buyer_business_unit')->nullable();

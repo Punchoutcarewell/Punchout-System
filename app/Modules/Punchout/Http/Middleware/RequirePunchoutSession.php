@@ -14,11 +14,12 @@ use Symfony\Component\HttpFoundation\Response;
  * (direct visit, expired session, or cookie-blocked with no working token
  * fallback) never reaches storefront content.
  *
- * Which specific state renders (direct-visit page vs expired-session page)
- * is a Storefront module concern; this middleware only decides whether to
- * let the request through. Until Storefront exists, it aborts with a
- * plain 403, that placeholder is replaced by the real state pages when
- * that module ships, this middleware's job does not change.
+ * Redirects to one of two distinct Storefront pages, never a generic
+ * error: "direct visit, no token" (nothing was ever presented) is a
+ * different message from "session expired" (a token was presented but
+ * didn't resolve), see ResolvePunchoutSession for how that distinction is
+ * tracked. This module still doesn't know what those pages look like,
+ * only their route names.
  */
 final class RequirePunchoutSession
 {
@@ -27,7 +28,11 @@ final class RequirePunchoutSession
     public function handle(Request $request, Closure $next): Response
     {
         if ($this->sessions->current() === null) {
-            abort(403, 'This catalogue is only accessible through Coupa.');
+            $routeName = $request->attributes->get('punchout_had_token', false)
+                ? 'storefront.session-expired'
+                : 'storefront.no-token';
+
+            return redirect()->route($routeName);
         }
 
         return $next($request);

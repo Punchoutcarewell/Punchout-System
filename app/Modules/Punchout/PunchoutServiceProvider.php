@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Modules\Punchout;
 
 use App\Modules\Punchout\Console\Commands\SimulateCoupaPunchout;
+use App\Modules\Punchout\Contracts\PunchoutLoggerInterface;
 use App\Modules\Punchout\Contracts\PunchoutProtocolInterface;
 use App\Modules\Punchout\Contracts\SessionManagerInterface;
 use App\Modules\Punchout\Cxml\CxmlProtocol;
 use App\Modules\Punchout\Http\Middleware\FrameAncestors;
 use App\Modules\Punchout\Http\Middleware\RequirePunchoutSession;
 use App\Modules\Punchout\Http\Middleware\ResolvePunchoutSession;
+use App\Modules\Punchout\Services\PunchoutLogger;
 use App\Modules\Punchout\Services\SessionManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -29,6 +31,7 @@ final class PunchoutServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(PunchoutProtocolInterface::class, CxmlProtocol::class);
+        $this->app->bind(PunchoutLoggerInterface::class, PunchoutLogger::class);
 
         // Singleton so bind()/current() hold the same SessionManager instance
         // across the whole request, not a fresh one per resolution.

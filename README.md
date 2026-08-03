@@ -22,7 +22,7 @@ A modular monolith, one deployable application internally split into modules wit
 | `Catalog` | Done | Products, categories, UNSPSC reference data, contract pricing, search, CSV import, `catalog:validate` |
 | `Cart` | Done | Cart state, quantity rules, the same-origin JSON cart API, the protocol-neutral snapshot Punchout's `OrderMessageBuilder` consumes |
 | `Orders` | Done | Purchase orders received from Coupa (via Punchout's `OrderRequestController`), queued notification email, idempotent on `po_number` |
-| `Storefront` | Not started | Vue 3 + Inertia.js pages, the composition layer over Catalog and Cart |
+| `Storefront` | Done | Vue 3 + Inertia.js pages, the composition layer over Catalog, Cart, and Punchout, the transfer-to-Coupa flow |
 | `Admin` | Done | Filament v3 panel: Product, Category, ContractPrice, PunchoutCredential (write-only secret), PurchaseOrder (read-only) |
 
 Each module lives under `app/Modules/<Name>/` with its own `Contracts/`, `Models/`, `Services/`, `database/migrations/`, and its own service provider that registers its bindings, migrations, routes, and console commands. Nothing about a module needs to be scattered across a central kernel file to add it.
@@ -31,12 +31,16 @@ Each module lives under `app/Modules/<Name>/` with its own `Contracts/`, `Models
 
 ```bash
 composer install
+npm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
+npm run build
 ```
 
 Local development runs on sqlite by default (`database/database.sqlite`, created automatically). No further setup is needed to run the app or the test suite. Staging and production are configured for PostgreSQL, credentials are environment-driven, never committed.
+
+The storefront's frontend (`resources/js`) is a Vue 3 + Inertia.js single page app, built by Vite and served as static assets from the same origin, there is no separate Node server in production. Run `npm run dev` for hot module reload while working on it, `npm run build` before any commit that touches `resources/js`.
 
 Punchout credentials (test and production) are managed entirely through the database, via the Admin module's Filament resource. There is deliberately no other way to set them, they never live in a migration, seeder, or `.env` file.
 
@@ -54,9 +58,10 @@ Then sign in at `/admin`. Every `User` row is an admin by definition, there is n
 php vendor/bin/pest              # test suite
 php vendor/bin/phpstan analyse   # static analysis, level 6
 php vendor/bin/pint              # code style, --test to check without fixing
+npx vue-tsc --noEmit             # frontend type check
 ```
 
-All three run clean on every commit to `main`.
+All four run clean on every commit to `main`.
 
 ## Useful artisan commands
 
@@ -65,6 +70,10 @@ php artisan punchout:simulate            # exercises the setup, start, and order
 php artisan catalog:import <path>        # import a catalogue CSV, producing a report rather than failing silently
 php artisan catalog:validate             # fail if any active product is missing a UNSPSC code, contract price, unit of measure, or description
 ```
+
+## A note on the TypeScript version pin
+
+`typescript` in `package.json` is pinned to `~6.0.3` deliberately, not left on a caret range. TypeScript 7 replaced the classic JS compiler package layout with a native one that no longer exposes the `./lib/tsc` subpath `vue-tsc` shells out to, so `npx vue-tsc --noEmit` fails immediately on TypeScript 7 with `ERR_PACKAGE_PATH_NOT_EXPORTED`. Do not widen this pin until `vue-tsc` publishes a release that supports TypeScript 7.
 
 ## A note on open items
 

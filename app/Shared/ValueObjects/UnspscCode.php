@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\ValueObjects;
 
 use App\Shared\Exceptions\DomainValidationException;
+use JsonSerializable;
 
 /**
  * An 8-digit UNSPSC classification code: segment, family, class, and
@@ -12,8 +13,12 @@ use App\Shared\Exceptions\DomainValidationException;
  * every ItemDetail as <Classification domain="UNSPSC">, and Amazon's
  * onboarding process treats a missing or malformed code as a blocking
  * defect, not a warning.
+ *
+ * Implements JsonSerializable so a DTO carrying this value serializes to
+ * the plain code string wherever it crosses a JSON boundary, rather than
+ * an empty object (its only property is private).
  */
-final class UnspscCode
+final class UnspscCode implements JsonSerializable
 {
     private function __construct(private readonly string $code) {}
 
@@ -62,6 +67,11 @@ final class UnspscCode
     }
 
     public function __toString(): string
+    {
+        return $this->code;
+    }
+
+    public function jsonSerialize(): string
     {
         return $this->code;
     }

@@ -12,12 +12,16 @@ use App\Modules\Cart\Exceptions\CartNotFoundException;
 use App\Modules\Cart\Models\Cart;
 use App\Modules\Cart\Models\CartItem;
 use App\Modules\Catalog\Contracts\PricingServiceInterface;
+use App\Modules\Punchout\Data\CartSnapshot;
 use App\Shared\Exceptions\DomainValidationException;
 use App\Shared\ValueObjects\Money;
 
 final class CartService implements CartServiceInterface
 {
-    public function __construct(private readonly PricingServiceInterface $pricing) {}
+    public function __construct(
+        private readonly PricingServiceInterface $pricing,
+        private readonly CartSnapshotFactory $snapshots,
+    ) {}
 
     public function addItem(int $sessionId, string $sku, int $quantity): CartSummary
     {
@@ -76,6 +80,11 @@ final class CartService implements CartServiceInterface
         }
 
         return $this->buildSummary($cart);
+    }
+
+    public function buildTransferSnapshot(int $sessionId): CartSnapshot
+    {
+        return $this->snapshots->build($this->requireCart($sessionId));
     }
 
     private function assertValidQuantity(int $quantity): void

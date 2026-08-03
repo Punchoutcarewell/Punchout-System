@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\ValueObjects;
 
 use App\Shared\Exceptions\DomainValidationException;
+use JsonSerializable;
 
 /**
  * An amount of money as an integer minor-unit value (cents, for a
@@ -15,8 +16,14 @@ use App\Shared\Exceptions\DomainValidationException;
  * exactly the kind of defect that surfaces as a mismatch during Coupa's
  * contract-price verification, where the Category Manager checks prices
  * line by line against the contract.
+ *
+ * Implements JsonSerializable because minorUnits and currency are private:
+ * without this, a DTO carrying a Money property would serialize to an
+ * empty object {} wherever it crosses a JSON boundary (an Inertia prop,
+ * an API response), since PHP's default object serialization only
+ * reflects public properties.
  */
-final class Money
+final class Money implements JsonSerializable
 {
     /** Currencies whose minor unit is not 2 decimal places. Extend as needed. */
     private const ZERO_DECIMAL_CURRENCIES = ['JPY', 'KRW', 'VND'];
@@ -141,6 +148,17 @@ final class Money
     public function __toString(): string
     {
         return "{$this->toDecimalString()} {$this->currency}";
+    }
+
+    /**
+     * @return array{amount: string, currency: string}
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'amount' => $this->toDecimalString(),
+            'currency' => $this->currency,
+        ];
     }
 
     private function assertSameCurrency(self $other): void

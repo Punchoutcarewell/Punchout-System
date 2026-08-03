@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Punchout\Services;
 
+use App\Modules\Punchout\Contracts\PunchoutLoggerInterface;
 use App\Modules\Punchout\Enums\PunchoutMessageDirection;
 use App\Modules\Punchout\Enums\PunchoutMessageType;
 use App\Modules\Punchout\Models\PunchoutLog;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Log;
  * named generically: it depends on the PunchoutLog model, which this
  * module owns, and Shared must never depend on another module's models.
  */
-final class PunchoutLogger
+final class PunchoutLogger implements PunchoutLoggerInterface
 {
     public function logInbound(
         PunchoutMessageType $type,

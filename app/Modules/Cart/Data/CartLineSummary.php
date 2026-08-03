@@ -25,7 +25,7 @@ final readonly class CartLineSummary
     ) {}
 
     /**
-     * @return array{sku: string, description: string, quantity: int, unit_price: string, line_total: string, currency: string}
+     * @return array{sku: string, description: string, quantity: int, unitPrice: Money, lineTotal: Money}
      */
     public function toArray(): array
     {
@@ -33,9 +33,8 @@ final readonly class CartLineSummary
             'sku' => $this->sku,
             'description' => $this->description,
             'quantity' => $this->quantity,
-            'unit_price' => $this->unitPrice->toDecimalString(),
-            'line_total' => $this->lineTotal->toDecimalString(),
-            'currency' => $this->unitPrice->currency(),
+            'unitPrice' => $this->unitPrice,
+            'lineTotal' => $this->lineTotal,
         ];
     }
 }

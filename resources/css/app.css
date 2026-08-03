@@ -3,9 +3,64 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
-@source '../**/*.js';
+@source '../**/*.vue';
+@source '../**/*.ts';
 
+/*
+ * Design tokens from the storefront design spec: orange as a signal
+ * colour marking actions, session state, and wayfinding, everything
+ * structural stays a cool near-navy. Tailwind v4 turns every --color-*
+ * token below into matching bg-/text-/border- utilities automatically.
+ */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    --color-brand-050: #fff6ef;
+    --color-brand-100: #ffe8d6;
+    --color-brand-500: #fb8b24;
+    --color-brand-600: #e85d04;
+    --color-brand-700: #c24a00;
+
+    --color-ink-500: #64778c;
+    --color-ink-700: #33465c;
+    --color-ink-900: #14202e;
+
+    --color-line: #e3e8ef;
+    --color-surface: #ffffff;
+    --color-surface-2: #f7f9fb;
+
+    --color-ok: #0e7c5a;
+    --color-warn: #b45309;
+}
+
+body {
+    font-family: var(--font-body);
+    color: var(--color-ink-700);
+    background-color: var(--color-brand-050);
+}
+
+h1,
+h2,
+h3,
+h4,
+nav,
+button {
+    font-family: var(--font-display);
+}
+
+.font-data {
+    font-family: var(--font-mono);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

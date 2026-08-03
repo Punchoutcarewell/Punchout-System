@@ -36,8 +36,15 @@ final class ResolvePunchoutSession
 
         $token = is_string($cookieToken) && $cookieToken !== '' ? $cookieToken : $queryToken;
         $resolvedFromQueryOnly = ! (is_string($cookieToken) && $cookieToken !== '') && is_string($queryToken) && $queryToken !== '';
+        $hadToken = is_string($token) && $token !== '';
 
-        if (is_string($token) && $token !== '') {
+        // Lets RequirePunchoutSession tell "never had a token" (direct
+        // visit) apart from "had one, but it didn't resolve" (expired or
+        // already transferred), the storefront design spec treats these
+        // as two distinct pages, not one generic error.
+        $request->attributes->set('punchout_had_token', $hadToken);
+
+        if ($hadToken) {
             $session = $this->sessions->resolve($token);
 
             if ($session !== null) {

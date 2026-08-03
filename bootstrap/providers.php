@@ -5,6 +5,7 @@ use App\Modules\Cart\CartServiceProvider;
 use App\Modules\Catalog\CatalogServiceProvider;
 use App\Modules\Orders\OrdersServiceProvider;
 use App\Modules\Punchout\PunchoutServiceProvider;
+use App\Modules\Storefront\StorefrontServiceProvider;
 use App\Providers\AppServiceProvider;
 
 return [
@@ -14,4 +15,5 @@ return [
     CartServiceProvider::class,
     OrdersServiceProvider::class,
     AdminPanelProvider::class,
+    StorefrontServiceProvider::class,
 ];

@@ -7,7 +7,9 @@ namespace App\Modules\Cart\Contracts;
 use App\Modules\Cart\Data\CartSummary;
 use App\Modules\Cart\Exceptions\CartItemNotFoundException;
 use App\Modules\Cart\Exceptions\CartNotFoundException;
+use App\Modules\Cart\Exceptions\EmptyCartException;
 use App\Modules\Catalog\Exceptions\ProductNotFoundException;
+use App\Modules\Punchout\Data\CartSnapshot;
 use App\Shared\Exceptions\DomainValidationException;
 
 /**
@@ -42,4 +44,16 @@ interface CartServiceInterface
      * an error.
      */
     public function summary(int $sessionId): CartSummary;
+
+    /**
+     * Builds Punchout's protocol-neutral CartSnapshot at the moment of
+     * transfer, re-resolving pricing fresh from Catalog. This is the one
+     * way anything outside this module ever gets from "a cart" to "what
+     * Punchout needs to build a PunchOutOrderMessage": the caller never
+     * sees this module's Cart or CartItem models.
+     *
+     * @throws CartNotFoundException
+     * @throws EmptyCartException
+     */
+    public function buildTransferSnapshot(int $sessionId): CartSnapshot;
 }

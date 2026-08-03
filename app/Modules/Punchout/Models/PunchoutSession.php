@@ -20,6 +20,10 @@ use Illuminate\Support\Carbon;
  * @property string $token
  * @property string $buyer_cookie
  * @property string $browser_form_post_url
+ * @property string|null $from_domain
+ * @property string|null $from_identity
+ * @property string|null $to_domain
+ * @property string|null $to_identity
  * @property string|null $buyer_user_email
  * @property string|null $buyer_unique_name
  * @property string|null $buyer_business_unit
@@ -36,6 +40,10 @@ final class PunchoutSession extends Model
         'token',
         'buyer_cookie',
         'browser_form_post_url',
+        'from_domain',
+        'from_identity',
+        'to_domain',
+        'to_identity',
         'buyer_user_email',
         'buyer_unique_name',
         'buyer_business_unit',

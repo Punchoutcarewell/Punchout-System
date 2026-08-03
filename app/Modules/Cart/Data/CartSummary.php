@@ -23,15 +23,14 @@ final readonly class CartSummary
     ) {}
 
     /**
-     * @return array{lines: array<int, array<string, mixed>>, total: string, currency: string, item_count: int}
+     * @return array{lines: array<int, array<string, mixed>>, total: Money, itemCount: int}
      */
     public function toArray(): array
     {
         return [
             'lines' => array_map(fn (CartLineSummary $line): array => $line->toArray(), $this->lines),
-            'total' => $this->total->toDecimalString(),
-            'currency' => $this->total->currency(),
-            'item_count' => $this->itemCount,
+            'total' => $this->total,
+            'itemCount' => $this->itemCount,
         ];
     }
 }

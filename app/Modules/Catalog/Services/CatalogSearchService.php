@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Services;
 
 use App\Modules\Catalog\Contracts\CatalogSearchInterface;
+use App\Modules\Catalog\Data\CategorySummary;
+use App\Modules\Catalog\Data\ProductDetail;
 use App\Modules\Catalog\Data\ProductSummary;
+use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
 use App\Shared\ValueObjects\Money;
 use App\Shared\ValueObjects\UnspscCode;
@@ -51,6 +54,45 @@ final class CatalogSearchService implements CatalogSearchInterface
             currentPage: $productPage->currentPage(),
             options: ['path' => $productPage->path()],
         );
+    }
+
+    public function find(string $sku): ?ProductDetail
+    {
+        $product = Product::query()->where('sku', $sku)->where('is_active', true)->with('category')->first();
+
+        if ($product === null) {
+            return null;
+        }
+
+        return new ProductDetail(
+            sku: $product->sku,
+            name: $product->name,
+            description: $product->description,
+            longDescription: $product->long_description,
+            categoryName: $product->category?->name,
+            unspscCode: UnspscCode::fromString($product->unspsc_code),
+            unitOfMeasure: $product->unit_of_measure,
+            packSize: $product->pack_size,
+            leadTimeDays: $product->lead_time_days,
+            listPrice: Money::fromDecimal($product->list_price, $product->currency),
+            imagePath: $product->image_path,
+            manufacturerName: $product->manufacturer_name,
+            manufacturerPartId: $product->manufacturer_part_id,
+        );
+    }
+
+    public function categories(): array
+    {
+        return Category::query()
+            ->orderBy('position')
+            ->get()
+            ->map(fn (Category $category): CategorySummary => new CategorySummary(
+                id: $category->id,
+                name: $category->name,
+                slug: $category->slug,
+                parentId: $category->parent_id,
+            ))
+            ->all();
     }
 
     /**

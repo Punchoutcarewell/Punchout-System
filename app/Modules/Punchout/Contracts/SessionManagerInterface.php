@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Punchout\Contracts;
 
+use App\Modules\Punchout\Data\OutboundIdentity;
 use App\Modules\Punchout\Data\SetupRequestData;
+use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
 use App\Modules\Punchout\Models\PunchoutSession;
 
 /**
@@ -40,4 +42,15 @@ interface SessionManagerInterface
     public function current(): ?PunchoutSession;
 
     public function markTransferred(PunchoutSession $session): void;
+
+    /**
+     * The Header identity fields for the outbound PunchOutOrderMessage,
+     * reversed from what the session captured at setup time. This is the
+     * one way anything outside this module gets from "a session" to
+     * "what goes in the From/To/Sender of an outbound message": the
+     * caller never touches PunchoutCredential directly.
+     *
+     * @throws InvalidCredentialsException no active credential matches this session's identity
+     */
+    public function resolveOutboundIdentity(PunchoutSession $session): OutboundIdentity;
 }

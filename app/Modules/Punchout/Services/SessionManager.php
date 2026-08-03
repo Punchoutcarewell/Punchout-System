@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Punchout\Services;
 
 use App\Modules\Punchout\Contracts\SessionManagerInterface;
+use App\Modules\Punchout\Data\OutboundIdentity;
 use App\Modules\Punchout\Data\SetupRequestData;
 use App\Modules\Punchout\Enums\PunchoutSessionStatus;
+use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
+use App\Modules\Punchout\Models\PunchoutCredential;
 use App\Modules\Punchout\Models\PunchoutSession;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -26,6 +29,10 @@ final class SessionManager implements SessionManagerInterface
             'token' => Str::random(64),
             'buyer_cookie' => $data->buyerCookie,
             'browser_form_post_url' => $data->browserFormPostUrl,
+            'from_domain' => $data->fromDomain,
+            'from_identity' => $data->fromIdentity,
+            'to_domain' => $data->toDomain,
+            'to_identity' => $data->toIdentity,
             'buyer_user_email' => $data->extrinsic('UserEmail'),
             'buyer_unique_name' => $data->extrinsic('UniqueName'),
             'buyer_business_unit' => $data->extrinsic('BusinessUnit'),
@@ -73,5 +80,31 @@ final class SessionManager implements SessionManagerInterface
     {
         $session->update(['status' => PunchoutSessionStatus::Transferred]);
         $this->boundSession = $session->refresh();
+    }
+
+    public function resolveOutboundIdentity(PunchoutSession $session): OutboundIdentity
+    {
+        $credential = PunchoutCredential::query()
+            ->where('to_domain', $session->to_domain)
+            ->where('to_identity', $session->to_identity)
+            ->where('is_active', true)
+            ->first();
+
+        if ($credential === null) {
+            throw InvalidCredentialsException::withContext(
+                'No active credential matches this session, cannot build an outbound identity.',
+                ['session_id' => $session->id, 'to_domain' => $session->to_domain, 'to_identity' => $session->to_identity],
+            );
+        }
+
+        return new OutboundIdentity(
+            fromDomain: $credential->to_domain,
+            fromIdentity: $credential->to_identity,
+            toDomain: (string) $session->from_domain,
+            toIdentity: (string) $session->from_identity,
+            senderDomain: $credential->sender_domain,
+            senderIdentity: $credential->sender_identity,
+            deploymentMode: $credential->environment->value === 'production' ? 'production' : 'test',
+        );
     }
 }
