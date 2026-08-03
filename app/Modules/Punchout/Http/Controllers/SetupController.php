@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Punchout\Http\Controllers;
 
+use App\Modules\Punchout\Contracts\PunchoutProtocolInterface;
 use App\Modules\Punchout\Contracts\SessionManagerInterface;
-use App\Modules\Punchout\Cxml\CxmlProtocol;
 use App\Modules\Punchout\Data\SetupResponseData;
 use App\Modules\Punchout\Enums\PunchoutMessageType;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
@@ -14,6 +14,8 @@ use App\Modules\Punchout\Services\CredentialValidator;
 use App\Modules\Punchout\Services\PunchoutLogger;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * POST /punchout/setup
@@ -27,7 +29,7 @@ use Illuminate\Http\Response;
 final class SetupController
 {
     public function __construct(
-        private readonly CxmlProtocol $protocol,
+        private readonly PunchoutProtocolInterface $protocol,
         private readonly CredentialValidator $credentials,
         private readonly SessionManagerInterface $sessions,
         private readonly PunchoutLogger $logger,
@@ -37,6 +39,46 @@ final class SetupController
     {
         $rawXml = $request->getContent();
 
+        try {
+            return $this->process($rawXml);
+        } catch (Throwable $exception) {
+            // Last-resort net: this endpoint's whole contract is that
+            // Coupa's server always gets well-formed cXML back, never an
+            // HTML error page or a bare 500, whatever goes wrong. Every
+            // expected failure is already handled in process() with its
+            // own Status code; this only catches what nobody anticipated,
+            // so it deliberately never calls back into $this->protocol,
+            // that dependency may be exactly what just failed.
+            try {
+                Log::channel('punchout')->error('Unexpected failure handling PunchOutSetupRequest.', [
+                    'error' => $exception->getMessage(),
+                ]);
+
+                $this->logger->logInbound(PunchoutMessageType::SetupRequest, $rawXml, httpStatus: 500, error: $exception->getMessage());
+            } catch (Throwable) {
+                // Logging itself failing must never stop the fallback
+                // response below from reaching Coupa.
+            }
+
+            return $this->xmlResponse(self::genericFailureXml(500, 'Internal error.'), 500);
+        }
+    }
+
+    /**
+     * A hand written cXML error, deliberately independent of
+     * PunchoutProtocolInterface: this is the fallback for when something
+     * entirely unanticipated has already gone wrong, so it must not risk
+     * failing a second time by calling back into the same dependency.
+     */
+    private static function genericFailureXml(int $statusCode, string $statusText): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>'
+            .'<!DOCTYPE cXML SYSTEM "http://xml.cxml.org/schemas/cXML/1.2.014/cXML.dtd">'
+            ."<cXML><Response><Status code=\"{$statusCode}\" text=\"{$statusText}\"/></Response></cXML>";
+    }
+
+    private function process(string $rawXml): Response
+    {
         try {
             $data = $this->protocol->parseSetupRequest($rawXml);
         } catch (MalformedCxmlException $exception) {

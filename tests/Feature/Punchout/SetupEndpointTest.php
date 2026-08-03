@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Punchout\Contracts\PunchoutProtocolInterface;
 use App\Modules\Punchout\Models\PunchoutLog;
 use App\Modules\Punchout\Models\PunchoutSession;
 
@@ -43,6 +44,21 @@ it('rejects malformed XML with a valid cXML error response, not an HTML error pa
     $response->assertStatus(400);
     expect($response->getContent())->toContain('<?xml')
         ->and($response->getContent())->toContain('code="400"')
+        ->and($response->getContent())->not->toContain('<html');
+});
+
+it('still returns a well-formed cXML error, never a bare 500, when something entirely unexpected fails', function () {
+    $this->mock(PunchoutProtocolInterface::class, function ($mock): void {
+        $mock->shouldReceive('parseSetupRequest')->andThrow(new RuntimeException('unexpected native failure'));
+    });
+
+    $xml = (string) file_get_contents(base_path('tests/Fixtures/Cxml/setup_request.xml'));
+
+    $response = $this->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+
+    $response->assertStatus(500);
+    expect($response->getContent())->toContain('<?xml')
+        ->and($response->getContent())->toContain('code="500"')
         ->and($response->getContent())->not->toContain('<html');
 });
 

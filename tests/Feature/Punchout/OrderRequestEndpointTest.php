@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Orders\Jobs\SendPurchaseOrderNotification;
 use App\Modules\Orders\Models\PurchaseOrder;
+use App\Modules\Punchout\Contracts\PunchoutProtocolInterface;
 use App\Modules\Punchout\Enums\PunchoutMessageType;
 use App\Modules\Punchout\Models\PunchoutLog;
 use Illuminate\Support\Facades\Queue;
@@ -101,4 +102,17 @@ it('persists the raw payload before parsing is attempted, even when parsing fail
 
     expect($log)->not->toBeNull()
         ->and($log->raw_payload)->toBe('<not-xml');
+});
+
+it('still returns a well-formed cXML error, never a bare 500, when something entirely unexpected fails', function () {
+    $this->mock(PunchoutProtocolInterface::class, function ($mock): void {
+        $mock->shouldReceive('parseOrderRequest')->andThrow(new RuntimeException('unexpected native failure'));
+    });
+
+    $response = $this->call('POST', '/punchout/order', content: '<cXML></cXML>', server: ['CONTENT_TYPE' => 'text/xml']);
+
+    $response->assertStatus(500);
+    expect($response->getContent())->toContain('<?xml')
+        ->and($response->getContent())->toContain('code="500"')
+        ->and($response->getContent())->not->toContain('<html');
 });
