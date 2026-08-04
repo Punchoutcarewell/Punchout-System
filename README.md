@@ -35,10 +35,13 @@ npm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
+php artisan storage:link
 npm run build
 ```
 
 Local development runs on sqlite by default (`database/database.sqlite`, created automatically). No further setup is needed to run the app or the test suite. Staging and production are configured for PostgreSQL, credentials are environment-driven, never committed.
+
+`storage:link` is required for product images: the Admin panel's product image upload writes to the `public` disk (`storage/app/public`), served through the `public/storage` symlink that command creates. Without it, uploaded images 404/403 on every environment, this is easy to forget since nothing else in local dev depends on it.
 
 The storefront's frontend (`resources/js`) is a Vue 3 + Inertia.js single page app, built by Vite and served as static assets from the same origin, there is no separate Node server in production. Run `npm run dev` for hot module reload while working on it, `npm run build` before any commit that touches `resources/js`.
 

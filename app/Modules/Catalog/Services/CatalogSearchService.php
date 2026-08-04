@@ -15,6 +15,7 @@ use App\Shared\ValueObjects\UnspscCode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Product search and category browse. PostgreSQL (staging/production)
@@ -75,7 +76,7 @@ final class CatalogSearchService implements CatalogSearchInterface
             packSize: $product->pack_size,
             leadTimeDays: $product->lead_time_days,
             listPrice: Money::fromDecimal($product->list_price, $product->currency),
-            imagePath: $product->image_path,
+            imagePath: self::imageUrl($product->image_path),
             manufacturerName: $product->manufacturer_name,
             manufacturerPartId: $product->manufacturer_part_id,
         );
@@ -127,7 +128,18 @@ final class CatalogSearchService implements CatalogSearchInterface
             unitOfMeasure: $product->unit_of_measure,
             packSize: $product->pack_size,
             leadTimeDays: $product->lead_time_days,
-            imagePath: $product->image_path,
+            imagePath: self::imageUrl($product->image_path),
         );
+    }
+
+    /**
+     * Product.image_path stores the path returned by the Admin form's
+     * FileUpload relative to the "public" disk (e.g. "products/abc.jpg"),
+     * never a browsable URL. This is the one place that turns it into
+     * one, so the storefront never needs to know the storage layout.
+     */
+    private static function imageUrl(?string $path): ?string
+    {
+        return $path === null ? null : Storage::disk('public')->url($path);
     }
 }

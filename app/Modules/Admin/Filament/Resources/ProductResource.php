@@ -6,6 +6,7 @@ namespace App\Modules\Admin\Filament\Resources;
 
 use App\Modules\Admin\Filament\Resources\ProductResource\Pages;
 use App\Modules\Catalog\Models\Product;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -14,6 +15,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -79,7 +81,14 @@ final class ProductResource extends Resource
             Section::make('Media and status')
                 ->columns(2)
                 ->schema([
-                    TextInput::make('image_path'),
+                    FileUpload::make('image_path')
+                        ->label('Image')
+                        ->image()
+                        ->disk('public')
+                        ->directory('products')
+                        ->visibility('public')
+                        ->maxSize(5120)
+                        ->imageEditor(),
                     Toggle::make('is_active')->default(true),
                 ]),
         ]);
@@ -89,6 +98,7 @@ final class ProductResource extends Resource
     {
         return $table
             ->columns([
+                ImageColumn::make('image_path')->label('')->disk('public'),
                 TextColumn::make('sku')->searchable()->sortable(),
                 TextColumn::make('name')->searchable()->limit(40),
                 TextColumn::make('category.name')->label('Category')->placeholder('None'),

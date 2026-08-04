@@ -51,3 +51,21 @@ it('returns every active product when no query or category is given', function (
 
     expect($results->total())->toBe(2);
 });
+
+it('turns a stored image path into a browsable public disk URL', function () {
+    createTestProduct(['sku' => 'CW-4021', 'image_path' => 'products/dressing.jpg']);
+
+    $results = (new CatalogSearchService)->search(null);
+    $detail = (new CatalogSearchService)->find('CW-4021');
+
+    expect($results->items()[0]->imagePath)->toEndWith('/storage/products/dressing.jpg')
+        ->and($detail->imagePath)->toEndWith('/storage/products/dressing.jpg');
+});
+
+it('leaves imagePath null when no image was uploaded', function () {
+    createTestProduct(['sku' => 'CW-4021', 'image_path' => null]);
+
+    $detail = (new CatalogSearchService)->find('CW-4021');
+
+    expect($detail->imagePath)->toBeNull();
+});
