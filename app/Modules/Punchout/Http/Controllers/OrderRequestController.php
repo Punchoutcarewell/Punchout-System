@@ -6,9 +6,13 @@ namespace App\Modules\Punchout\Http\Controllers;
 
 use App\Modules\Orders\Contracts\PurchaseOrderServiceInterface;
 use App\Modules\Punchout\Contracts\PunchoutProtocolInterface;
+use App\Modules\Punchout\Data\CxmlHeaderData;
 use App\Modules\Punchout\Data\OrderResponseData;
 use App\Modules\Punchout\Enums\PunchoutMessageType;
+use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
 use App\Modules\Punchout\Exceptions\MalformedCxmlException;
+use App\Modules\Punchout\Models\PunchoutLog;
+use App\Modules\Punchout\Services\CredentialValidator;
 use App\Modules\Punchout\Services\PunchoutLogger;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -25,6 +29,13 @@ use Throwable;
  * persisted before parsing is attempted, so a parser bug can never lose
  * an order.
  *
+ * Authenticated the same way as PunchOutSetupRequest, via the same
+ * Header/Sender/Credential/SharedSecret and CredentialValidator: an
+ * inbound OrderRequest carries a complete cXML Header exactly like the
+ * setup request does, so there is no reason this endpoint should accept
+ * unauthenticated input while /punchout/setup does not. The safe default
+ * while that stayed unconfirmed was closed, not open.
+ *
  * Turning the parsed OrderRequestData into a PurchaseOrder business record
  * is a single call to Orders\Contracts\PurchaseOrderServiceInterface: this
  * controller's own job stays receive, log, validate the XML, and
@@ -35,6 +46,7 @@ final class OrderRequestController
 {
     public function __construct(
         private readonly PunchoutProtocolInterface $protocol,
+        private readonly CredentialValidator $credentials,
         private readonly PunchoutLogger $logger,
         private readonly PurchaseOrderServiceInterface $purchaseOrders,
     ) {}
@@ -43,10 +55,10 @@ final class OrderRequestController
     {
         $rawXml = $request->getContent();
 
-        $this->logger->logInbound(PunchoutMessageType::OrderRequest, $rawXml);
+        $log = $this->logger->logInbound(PunchoutMessageType::OrderRequest, $rawXml);
 
         try {
-            return $this->process($rawXml);
+            return $this->process($rawXml, $log);
         } catch (Throwable $exception) {
             // See SetupController::handle() for why this net exists and
             // deliberately never calls back into $this->protocol: that
@@ -56,7 +68,7 @@ final class OrderRequestController
                     'error' => $exception->getMessage(),
                 ]);
 
-                $this->logger->logInbound(PunchoutMessageType::OrderRequest, $rawXml, httpStatus: 500, error: $exception->getMessage());
+                $this->logger->updateStatus($log, 500, $exception->getMessage());
             } catch (Throwable) {
                 // Logging itself failing must never stop the fallback
                 // response below from reaching Coupa.
@@ -79,12 +91,12 @@ final class OrderRequestController
             ."<cXML><Response><Status code=\"{$statusCode}\" text=\"{$statusText}\"/></Response></cXML>";
     }
 
-    private function process(string $rawXml): Response
+    private function process(string $rawXml, PunchoutLog $log): Response
     {
         try {
             $data = $this->protocol->parseOrderRequest($rawXml);
         } catch (MalformedCxmlException $exception) {
-            $this->logger->logInbound(PunchoutMessageType::OrderRequest, $rawXml, httpStatus: 400, error: $exception->getMessage());
+            $this->logger->updateStatus($log, 400, $exception->getMessage());
 
             return $this->xmlResponse(
                 $this->protocol->buildOrderResponse(new OrderResponseData(400, 'Malformed request.')),
@@ -92,10 +104,22 @@ final class OrderRequestController
             );
         }
 
+        try {
+            $this->credentials->validate(CxmlHeaderData::fromOrderRequest($data));
+        } catch (InvalidCredentialsException $exception) {
+            $this->logger->updateStatus($log, 401, $exception->getMessage());
+
+            return $this->xmlResponse(
+                $this->protocol->buildOrderResponse(new OrderResponseData(401, 'Unauthorized.')),
+                401,
+            );
+        }
+
         $this->purchaseOrders->receive($data, $rawXml);
 
         $responseXml = $this->protocol->buildOrderResponse(OrderResponseData::accepted());
 
+        $this->logger->updateStatus($log, 200);
         $this->logger->logOutbound(PunchoutMessageType::OrderResponse, $responseXml, httpStatus: 200);
 
         return $this->xmlResponse($responseXml, 200);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Punchout\Services;
 
 use App\Modules\Punchout\Contracts\PunchoutLoggerInterface;
+use App\Modules\Punchout\Cxml\CxmlSecretRedactor;
 use App\Modules\Punchout\Enums\PunchoutMessageDirection;
 use App\Modules\Punchout\Enums\PunchoutMessageType;
 use App\Modules\Punchout\Models\PunchoutLog;
@@ -24,14 +25,16 @@ use Illuminate\Support\Facades\Log;
  */
 final class PunchoutLogger implements PunchoutLoggerInterface
 {
+    public function __construct(private readonly CxmlSecretRedactor $redactor) {}
+
     public function logInbound(
         PunchoutMessageType $type,
         string $rawPayload,
         ?PunchoutSession $session = null,
         ?int $httpStatus = null,
         ?string $error = null,
-    ): void {
-        $this->write(PunchoutMessageDirection::Inbound, $type, $rawPayload, $session, $httpStatus, $error);
+    ): PunchoutLog {
+        return $this->write(PunchoutMessageDirection::Inbound, $type, $rawPayload, $session, $httpStatus, $error);
     }
 
     public function logOutbound(
@@ -39,8 +42,29 @@ final class PunchoutLogger implements PunchoutLoggerInterface
         string $rawPayload,
         ?PunchoutSession $session = null,
         ?int $httpStatus = null,
-    ): void {
-        $this->write(PunchoutMessageDirection::Outbound, $type, $rawPayload, $session, $httpStatus);
+    ): PunchoutLog {
+        return $this->write(PunchoutMessageDirection::Outbound, $type, $rawPayload, $session, $httpStatus);
+    }
+
+    /**
+     * Updates the row an earlier logInbound()/logOutbound() call created,
+     * once the real outcome is known, instead of writing a second row for
+     * the same request. The raw_payload was already redacted and does not
+     * need touching again.
+     */
+    public function updateStatus(PunchoutLog $log, ?int $httpStatus, ?string $error = null, ?PunchoutSession $session = null): void
+    {
+        $log->update([
+            'http_status' => $httpStatus,
+            'error' => $error,
+            'session_id' => $session !== null ? $session->id : $log->session_id,
+        ]);
+
+        Log::channel('punchout')->info("{$log->direction->value}:{$log->message_type->value}", [
+            'session_id' => $log->session_id,
+            'http_status' => $httpStatus,
+            'error' => $error,
+        ]);
     }
 
     private function write(
@@ -50,10 +74,10 @@ final class PunchoutLogger implements PunchoutLoggerInterface
         ?PunchoutSession $session,
         ?int $httpStatus,
         ?string $error = null,
-    ): void {
-        $redacted = $this->redactSharedSecret($rawPayload);
+    ): PunchoutLog {
+        $redacted = $this->redactor->redact($rawPayload);
 
-        PunchoutLog::query()->create([
+        $log = PunchoutLog::query()->create([
             'session_id' => $session?->id,
             'direction' => $direction,
             'message_type' => $type,
@@ -68,14 +92,7 @@ final class PunchoutLogger implements PunchoutLoggerInterface
             'http_status' => $httpStatus,
             'error' => $error,
         ]);
-    }
 
-    private function redactSharedSecret(string $payload): string
-    {
-        return preg_replace(
-            '/(<SharedSecret[^>]*>)([^<]*)(<\/SharedSecret>)/i',
-            '$1[REDACTED]$3',
-            $payload,
-        ) ?? $payload;
+        return $log;
     }
 }

@@ -19,6 +19,13 @@ final readonly class OrderRequestData
      * @param  OrderRequestLineData[]  $lines
      */
     public function __construct(
+        public string $fromDomain,
+        public string $fromIdentity,
+        public string $toDomain,
+        public string $toIdentity,
+        public string $senderDomain,
+        public string $senderIdentity,
+        public string $sharedSecret,
         public string $poNumber,
         public DateTimeImmutable $orderDate,
         public Money $total,

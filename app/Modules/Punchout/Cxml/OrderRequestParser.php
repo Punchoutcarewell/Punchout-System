@@ -32,6 +32,9 @@ final class OrderRequestParser
     {
         $reader = new XPathReader(XmlSecurity::loadSafely($rawXml));
 
+        $cxmlHeader = $reader->requireElement('/cXML/Header', 'Header');
+        $credentials = (new CxmlHeaderParser)->parse($reader, $cxmlHeader);
+
         $orderRequest = $reader->requireElement('/cXML/Request/OrderRequest', 'OrderRequest');
         $header = $reader->requireElement('OrderRequestHeader', 'OrderRequestHeader', $orderRequest);
 
@@ -49,6 +52,13 @@ final class OrderRequestParser
         $buyerReference = $reader->text('Extrinsic[@name="buyerReference"]', $header);
 
         return new OrderRequestData(
+            fromDomain: $credentials->fromDomain,
+            fromIdentity: $credentials->fromIdentity,
+            toDomain: $credentials->toDomain,
+            toIdentity: $credentials->toIdentity,
+            senderDomain: $credentials->senderDomain,
+            senderIdentity: $credentials->senderIdentity,
+            sharedSecret: $credentials->sharedSecret,
             poNumber: $poNumber,
             orderDate: $orderDate,
             total: $total,

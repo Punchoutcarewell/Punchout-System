@@ -37,10 +37,25 @@ final class SimulateCoupaPunchout extends Command
 
     protected $description = "Simulate a Coupa PunchOut round trip against this application's own endpoints.";
 
-    private const SHARED_SECRET = 'simulator-shared-secret';
+    private string $sharedSecret;
 
     public function handle(): int
     {
+        // This command plants an active, known-secret PunchoutCredential
+        // row. Run against a real deployment, which is exactly what an
+        // operator smoke-testing a deploy would do, that row would
+        // authenticate real requests: environment guard here is not
+        // optional, and PunchoutEnvironment::current() scoping every
+        // credential lookup (see CredentialValidator/SessionManager) is
+        // the second, durable layer in case this guard is ever bypassed.
+        if (! app()->environment('local', 'testing')) {
+            $this->components->error('Refusing to run outside local/testing: this plants an active credential with a known secret.');
+
+            return self::FAILURE;
+        }
+
+        $this->sharedSecret = Str::random(40);
+
         $baseUrl = rtrim((string) ($this->option('base-url') ?: config('app.url')), '/');
 
         $this->components->info("Simulating against {$baseUrl}");
@@ -65,11 +80,13 @@ final class SimulateCoupaPunchout extends Command
         PunchoutCredential::query()->updateOrCreate(
             [
                 'environment' => PunchoutEnvironment::Test,
+                'from_domain' => 'DUNS',
+                'from_identity' => 'COUPA-SIM',
                 'to_domain' => 'DUNS',
                 'to_identity' => 'CAREWELL-SIM',
             ],
             [
-                'shared_secret' => self::SHARED_SECRET,
+                'shared_secret' => $this->sharedSecret,
                 'sender_domain' => 'DUNS',
                 'sender_identity' => 'COUPA-SIM',
                 'protocol' => 'cxml',
@@ -161,7 +178,7 @@ final class SimulateCoupaPunchout extends Command
     {
         $payloadId = $this->payloadId();
         $timestamp = $this->timestamp();
-        $sharedSecret = self::SHARED_SECRET;
+        $sharedSecret = $this->sharedSecret;
         $browserFormPostUrl = 'https://simulator.invalid/cart/transfer?id='.Str::random(6);
 
         return <<<XML
@@ -197,6 +214,7 @@ final class SimulateCoupaPunchout extends Command
     {
         $payloadId = $this->payloadId();
         $timestamp = $this->timestamp();
+        $sharedSecret = $this->sharedSecret;
 
         return <<<XML
         <?xml version="1.0" encoding="UTF-8"?>
@@ -205,7 +223,7 @@ final class SimulateCoupaPunchout extends Command
           <Header>
             <From><Credential domain="DUNS"><Identity>COUPA-SIM</Identity></Credential></From>
             <To><Credential domain="DUNS"><Identity>CAREWELL-SIM</Identity></Credential></To>
-            <Sender><Credential domain="DUNS"><Identity>COUPA-SIM</Identity></Credential></Sender>
+            <Sender><Credential domain="DUNS"><Identity>COUPA-SIM</Identity><SharedSecret>{$sharedSecret}</SharedSecret></Credential></Sender>
           </Header>
           <Request deploymentMode="test">
             <OrderRequest>

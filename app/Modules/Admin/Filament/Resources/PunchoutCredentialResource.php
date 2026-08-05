@@ -50,6 +50,14 @@ final class PunchoutCredentialResource extends Resource
                         ])
                         ->required(),
                     Toggle::make('is_active')->default(true),
+                    TextInput::make('from_domain')
+                        ->label('Buyer domain (From)')
+                        ->required()
+                        ->helperText('The buying organisation this credential authenticates, e.g. DUNS.'),
+                    TextInput::make('from_identity')
+                        ->label('Buyer identity (From)')
+                        ->required()
+                        ->helperText("Coupa's own identity for this buyer, e.g. COUPA1."),
                     TextInput::make('to_domain')
                         ->label('Buyer domain (To)')
                         ->required()
@@ -86,6 +94,7 @@ final class PunchoutCredentialResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('environment'),
+                TextColumn::make('from_identity')->label('Buyer (From)'),
                 TextColumn::make('to_domain')->label('Buyer domain'),
                 TextColumn::make('to_identity')->label('Buyer identity'),
                 TextColumn::make('protocol'),

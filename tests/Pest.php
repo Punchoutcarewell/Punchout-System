@@ -58,6 +58,8 @@ function createTestPunchoutCredential(string $sharedSecret = 'ALD'): PunchoutCre
 {
     return PunchoutCredential::query()->create([
         'environment' => PunchoutEnvironment::Test,
+        'from_domain' => 'DUNS',
+        'from_identity' => 'COUPA1',
         'to_domain' => 'DUNS',
         'to_identity' => '079928354',
         'shared_secret' => $sharedSecret,
@@ -105,6 +107,13 @@ function actingAsAdmin(): User
 function sampleOrderRequestData(string $poNumber = 'PO-1'): OrderRequestData
 {
     return new OrderRequestData(
+        fromDomain: 'DUNS',
+        fromIdentity: 'COUPA1',
+        toDomain: 'DUNS',
+        toIdentity: '079928354',
+        senderDomain: 'DUNS',
+        senderIdentity: 'COUPA1',
+        sharedSecret: 'ALD',
         poNumber: $poNumber,
         orderDate: new DateTimeImmutable('2026-08-10T10:00:00-05:00'),
         total: Money::fromDecimal('25.99', 'AUD'),

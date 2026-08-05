@@ -6,12 +6,14 @@ use App\Modules\Orders\Enums\PurchaseOrderStatus;
 use App\Modules\Orders\Jobs\SendPurchaseOrderNotification;
 use App\Modules\Orders\Models\PurchaseOrder;
 use App\Modules\Orders\Services\PurchaseOrderService;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 
 it('creates a PurchaseOrder with its lines and queues a notification', function () {
     Queue::fake();
 
-    $receipt = (new PurchaseOrderService)->receive(sampleOrderRequestData('PO-1'), '<raw-xml/>');
+    $receipt = (app(PurchaseOrderService::class))->receive(sampleOrderRequestData('PO-1'), '<raw-xml/>');
 
     expect($receipt->poNumber)->toBe('PO-1')
         ->and($receipt->status)->toBe(PurchaseOrderStatus::Received)
@@ -22,7 +24,7 @@ it('creates a PurchaseOrder with its lines and queues a notification', function 
     expect($purchaseOrder->total)->toBe('25.99')
         ->and($purchaseOrder->currency)->toBe('AUD')
         ->and($purchaseOrder->buyer_reference)->toBe('REQ-123')
-        ->and($purchaseOrder->raw_payload)->toBe('<raw-xml/>')
+        ->and($purchaseOrder->raw_payload)->toContain('<raw-xml/>')
         ->and($purchaseOrder->status)->toBe(PurchaseOrderStatus::Received)
         ->and($purchaseOrder->lines)->toHaveCount(1);
 
@@ -38,7 +40,7 @@ it('creates a PurchaseOrder with its lines and queues a notification', function 
 it('is idempotent on a repeated po_number: no duplicate order, no second notification', function () {
     Queue::fake();
 
-    $service = new PurchaseOrderService;
+    $service = app(PurchaseOrderService::class);
     $service->receive(sampleOrderRequestData('PO-DUPLICATE'), '<raw-xml/>');
     $receipt = $service->receive(sampleOrderRequestData('PO-DUPLICATE'), '<raw-xml/>');
 
@@ -46,4 +48,54 @@ it('is idempotent on a repeated po_number: no duplicate order, no second notific
         ->and(PurchaseOrder::query()->where('po_number', 'PO-DUPLICATE')->count())->toBe(1);
 
     Queue::assertPushed(SendPurchaseOrderNotification::class, 1);
+});
+
+it('never stores the shared secret in purchase_orders.raw_payload', function () {
+    Queue::fake();
+
+    $rawPayload = <<<'XML'
+    <cXML><Header><Sender><Credential domain="DUNS"><Identity>COUPA1</Identity><SharedSecret>ALD</SharedSecret></Credential></Sender></Header></cXML>
+    XML;
+
+    app(PurchaseOrderService::class)->receive(sampleOrderRequestData('PO-SECRET'), $rawPayload);
+
+    $purchaseOrder = PurchaseOrder::query()->where('po_number', 'PO-SECRET')->firstOrFail();
+
+    expect($purchaseOrder->raw_payload)->toContain('[REDACTED]')
+        ->and($purchaseOrder->raw_payload)->not->toContain('ALD');
+});
+
+it('treats a unique-constraint violation on a concurrently inserted po_number as an idempotent hit, not a crash', function () {
+    Queue::fake();
+
+    // No row exists yet when receive()'s own early check runs (the fast
+    // path this test deliberately bypasses); DB::transaction() is mocked
+    // to fail exactly the way a genuine race would, another process's
+    // insert for the same po_number lands and commits first, so this
+    // call's own insert hits the unique index. As a side effect it plants
+    // that "other process's" row directly, so the catch branch's lookup
+    // has something real to find, the same as it would after a real race.
+    DB::shouldReceive('transaction')->once()->andReturnUsing(function () {
+        // Eloquent's own connection resolution, deliberately not the DB
+        // facade: DB::shouldReceive() above replaces the facade root for
+        // the rest of this test, a DB::table() call in here would hit
+        // the same mock instead of a real connection.
+        PurchaseOrder::query()->create([
+            'po_number' => 'PO-RACE',
+            'order_date' => now(),
+            'total' => '25.99',
+            'currency' => 'AUD',
+            'buyer_reference' => null,
+            'raw_payload' => 'inserted by the winning process',
+            'status' => PurchaseOrderStatus::Received,
+            'received_at' => now(),
+        ]);
+
+        throw new UniqueConstraintViolationException('sqlite', 'insert', [], new Exception('UNIQUE constraint failed'));
+    });
+
+    $receipt = app(PurchaseOrderService::class)->receive(sampleOrderRequestData('PO-RACE'), '<raw-xml/>');
+
+    expect($receipt->wasAlreadyReceived)->toBeTrue()
+        ->and(PurchaseOrder::query()->where('po_number', 'PO-RACE')->count())->toBe(1);
 });

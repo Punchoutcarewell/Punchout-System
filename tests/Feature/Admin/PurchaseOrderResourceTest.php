@@ -13,7 +13,7 @@ use Livewire\Livewire;
 it('lists received purchase orders', function () {
     actingAsAdmin();
     Queue::fake();
-    (new PurchaseOrderService)->receive(sampleOrderRequestData('PO-1'), '<raw-xml/>');
+    (app(PurchaseOrderService::class))->receive(sampleOrderRequestData('PO-1'), '<raw-xml/>');
 
     Livewire::test(ListPurchaseOrders::class)
         ->assertCanSeeTableRecords(PurchaseOrder::all());
@@ -28,7 +28,7 @@ it('has no create action: purchase orders only arrive from Coupa', function () {
 it('shows the order header and lines on the view page', function () {
     actingAsAdmin();
     Queue::fake();
-    (new PurchaseOrderService)->receive(sampleOrderRequestData('PO-1'), '<raw-xml/>');
+    (app(PurchaseOrderService::class))->receive(sampleOrderRequestData('PO-1'), '<raw-xml/>');
 
     $purchaseOrder = PurchaseOrder::query()->where('po_number', 'PO-1')->firstOrFail();
 

@@ -6,6 +6,7 @@ namespace App\Modules\Punchout\Http\Controllers;
 
 use App\Modules\Punchout\Contracts\PunchoutProtocolInterface;
 use App\Modules\Punchout\Contracts\SessionManagerInterface;
+use App\Modules\Punchout\Data\CxmlHeaderData;
 use App\Modules\Punchout\Data\SetupResponseData;
 use App\Modules\Punchout\Enums\PunchoutMessageType;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
@@ -91,7 +92,7 @@ final class SetupController
         }
 
         try {
-            $this->credentials->validate($data);
+            $this->credentials->validate(CxmlHeaderData::fromSetupRequest($data));
         } catch (InvalidCredentialsException $exception) {
             $this->logger->logInbound(PunchoutMessageType::SetupRequest, $rawXml, httpStatus: 401, error: $exception->getMessage());
 

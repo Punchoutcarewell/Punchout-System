@@ -14,7 +14,22 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // This app is never reached directly: every real deployment sits
+        // behind a fronting proxy (a Cloudflare Tunnel today, an Azure
+        // load balancer or reverse proxy later), so there is no fixed
+        // CIDR to trust instead of "all" here, unlike a traditional
+        // on-prem setup with a known edge. Without this, X-Forwarded-Proto
+        // is ignored: the StartPage URL handed back to Coupa in
+        // PunchOutSetupResponse would be generated as http:// even though
+        // the buyer only ever reaches this app over https://, and
+        // $request->ip() (used to key the punchout-setup/punchout-order
+        // rate limiters) would return the proxy's IP for every request
+        // rather than the real caller's, collapsing all traffic into one
+        // shared bucket.
+        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR
+            | Request::HEADER_X_FORWARDED_HOST
+            | Request::HEADER_X_FORWARDED_PORT
+            | Request::HEADER_X_FORWARDED_PROTO);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Every module's exceptions map to a JSON error shape in one

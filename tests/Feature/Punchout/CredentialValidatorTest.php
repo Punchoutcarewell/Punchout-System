@@ -2,15 +2,14 @@
 
 declare(strict_types=1);
 
-use App\Modules\Punchout\Data\SetupRequestData;
-use App\Modules\Punchout\Enums\PunchoutOperation;
+use App\Modules\Punchout\Data\CxmlHeaderData;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
 use App\Modules\Punchout\Services\CredentialValidator;
 use Illuminate\Support\Facades\DB;
 
-function setupRequestDataFor(string $sharedSecret): SetupRequestData
+function setupRequestDataFor(string $sharedSecret): CxmlHeaderData
 {
-    return new SetupRequestData(
+    return new CxmlHeaderData(
         fromDomain: 'DUNS',
         fromIdentity: 'COUPA1',
         toDomain: 'DUNS',
@@ -18,13 +17,6 @@ function setupRequestDataFor(string $sharedSecret): SetupRequestData
         senderDomain: 'DUNS',
         senderIdentity: 'COUPA1',
         sharedSecret: $sharedSecret,
-        operation: PunchoutOperation::Create,
-        buyerCookie: 'cookie123',
-        browserFormPostUrl: 'https://example.com/cart',
-        extrinsics: [],
-        contactName: null,
-        contactEmail: null,
-        supplierSetupUrl: null,
     );
 }
 
@@ -42,6 +34,22 @@ it('rejects a mismatched shared secret', function () {
     (new CredentialValidator)->validate(setupRequestDataFor('WRONG-SECRET'));
 })->throws(InvalidCredentialsException::class);
 
+it('rejects the correct shared secret presented with an unrecognised From identity', function () {
+    createTestPunchoutCredential('ALD');
+
+    $header = new CxmlHeaderData(
+        fromDomain: 'DUNS',
+        fromIdentity: 'SOME-OTHER-BUYER',
+        toDomain: 'DUNS',
+        toIdentity: '079928354',
+        senderDomain: 'DUNS',
+        senderIdentity: 'COUPA1',
+        sharedSecret: 'ALD',
+    );
+
+    (new CredentialValidator)->validate($header);
+})->throws(InvalidCredentialsException::class);
+
 it('rejects when no credential is configured for the identity', function () {
     (new CredentialValidator)->validate(setupRequestDataFor('ALD'));
 })->throws(InvalidCredentialsException::class);
@@ -51,6 +59,18 @@ it('rejects an inactive credential even with the correct secret', function () {
     $credential->update(['is_active' => false]);
 
     (new CredentialValidator)->validate(setupRequestDataFor('ALD'));
+})->throws(InvalidCredentialsException::class);
+
+it('rejects a Test credential when the application is running in production', function () {
+    createTestPunchoutCredential('ALD');
+
+    app()->instance('env', 'production');
+
+    try {
+        (new CredentialValidator)->validate(setupRequestDataFor('ALD'));
+    } finally {
+        app()->instance('env', 'testing');
+    }
 })->throws(InvalidCredentialsException::class);
 
 it('encrypts the shared secret at rest', function () {

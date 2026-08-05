@@ -26,6 +26,21 @@ it('accepts a valid setup request and creates a session', function () {
         ->and($session->buyer_business_unit)->toBe('COUPA');
 });
 
+it('honours X-Forwarded-Proto so the StartPage URL is https behind a proxy', function () {
+    createTestPunchoutCredential('ALD');
+
+    $xml = (string) file_get_contents(base_path('tests/Fixtures/Cxml/setup_request.xml'));
+
+    $response = $this->call('POST', '/punchout/setup', content: $xml, server: [
+        'CONTENT_TYPE' => 'text/xml',
+        'HTTP_X_FORWARDED_PROTO' => 'https',
+        'HTTP_X_FORWARDED_FOR' => '203.0.113.7',
+    ]);
+
+    $response->assertStatus(200);
+    expect($response->getContent())->toMatch('#<URL>https://#');
+});
+
 it('rejects a request with the wrong shared secret and creates no session', function () {
     createTestPunchoutCredential('THE-REAL-SECRET');
 

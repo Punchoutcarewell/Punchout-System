@@ -24,6 +24,7 @@ final class SetupRequestParser
 
         $header = $reader->requireElement('/cXML/Header', 'Header');
         $request = $reader->requireElement('/cXML/Request/PunchOutSetupRequest', 'PunchOutSetupRequest');
+        $credentials = (new CxmlHeaderParser)->parse($reader, $header);
 
         $operationAttribute = $request->getAttribute('operation');
         $operation = PunchoutOperation::tryFrom($operationAttribute);
@@ -36,13 +37,13 @@ final class SetupRequestParser
         }
 
         return new SetupRequestData(
-            fromDomain: $this->credentialDomain($reader, $header, 'From'),
-            fromIdentity: $this->credentialIdentity($reader, $header, 'From'),
-            toDomain: $this->credentialDomain($reader, $header, 'To'),
-            toIdentity: $this->credentialIdentity($reader, $header, 'To'),
-            senderDomain: $this->credentialDomain($reader, $header, 'Sender'),
-            senderIdentity: $this->credentialIdentity($reader, $header, 'Sender'),
-            sharedSecret: $reader->text('Sender/Credential/SharedSecret', $header) ?? '',
+            fromDomain: $credentials->fromDomain,
+            fromIdentity: $credentials->fromIdentity,
+            toDomain: $credentials->toDomain,
+            toIdentity: $credentials->toIdentity,
+            senderDomain: $credentials->senderDomain,
+            senderIdentity: $credentials->senderIdentity,
+            sharedSecret: $credentials->sharedSecret,
             operation: $operation,
             buyerCookie: $reader->requireText('BuyerCookie', 'BuyerCookie', $request),
             browserFormPostUrl: $reader->requireText('BrowserFormPost/URL', 'BrowserFormPost/URL', $request),
@@ -73,17 +74,5 @@ final class SetupRequestParser
         }
 
         return $extrinsics;
-    }
-
-    private function credentialDomain(XPathReader $reader, DOMNode $header, string $section): string
-    {
-        $credential = $reader->requireElement("{$section}/Credential", "Header/{$section}/Credential", $header);
-
-        return $credential->getAttribute('domain');
-    }
-
-    private function credentialIdentity(XPathReader $reader, DOMNode $header, string $section): string
-    {
-        return $reader->requireText("{$section}/Credential/Identity", "Header/{$section}/Credential/Identity", $header);
     }
 }

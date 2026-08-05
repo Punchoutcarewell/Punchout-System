@@ -16,6 +16,8 @@ it('creates a credential with the secret encrypted at rest', function () {
     Livewire::test(CreatePunchoutCredential::class)
         ->fillForm([
             'environment' => 'test',
+            'from_domain' => 'DUNS',
+            'from_identity' => 'COUPA1',
             'to_domain' => 'DUNS',
             'to_identity' => '079928354',
             'sender_domain' => 'DUNS',
@@ -41,6 +43,8 @@ it('requires a secret on create', function () {
     Livewire::test(CreatePunchoutCredential::class)
         ->fillForm([
             'environment' => 'test',
+            'from_domain' => 'DUNS',
+            'from_identity' => 'COUPA1',
             'to_domain' => 'DUNS',
             'to_identity' => '079928354',
             'sender_domain' => 'DUNS',
@@ -55,6 +59,8 @@ it('never pre-fills the secret field when editing', function () {
 
     $credential = PunchoutCredential::query()->create([
         'environment' => PunchoutEnvironment::Test,
+        'from_domain' => 'DUNS',
+        'from_identity' => 'COUPA1',
         'to_domain' => 'DUNS',
         'to_identity' => '079928354',
         'shared_secret' => 'TopSecret123',
@@ -73,6 +79,8 @@ it('leaves the secret unchanged when the field is left blank on save', function 
 
     $credential = PunchoutCredential::query()->create([
         'environment' => PunchoutEnvironment::Test,
+        'from_domain' => 'DUNS',
+        'from_identity' => 'COUPA1',
         'to_domain' => 'DUNS',
         'to_identity' => '079928354',
         'shared_secret' => 'TopSecret123',
@@ -96,6 +104,8 @@ it('changes the secret when a new value is typed on save', function () {
 
     $credential = PunchoutCredential::query()->create([
         'environment' => PunchoutEnvironment::Test,
+        'from_domain' => 'DUNS',
+        'from_identity' => 'COUPA1',
         'to_domain' => 'DUNS',
         'to_identity' => '079928354',
         'shared_secret' => 'TopSecret123',
@@ -118,6 +128,8 @@ it('never shows the shared secret in the table listing', function () {
 
     PunchoutCredential::query()->create([
         'environment' => PunchoutEnvironment::Test,
+        'from_domain' => 'DUNS',
+        'from_identity' => 'COUPA1',
         'to_domain' => 'DUNS',
         'to_identity' => '079928354',
         'shared_secret' => 'TopSecret123',

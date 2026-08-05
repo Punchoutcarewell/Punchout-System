@@ -8,9 +8,14 @@ use App\Modules\Punchout\Enums\PunchoutEnvironment;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * One row per environment (test, production). shared_secret is encrypted
- * at rest via Laravel's own encrypter (APP_KEY), never stored or logged in
- * plain text.
+ * One row per (environment, buyer, supplier identity) combination:
+ * from_domain/from_identity is the buying organisation this row
+ * authenticates, so a leaked or misused secret for one buyer can never be
+ * used to address an outbound message to a different one, and the same
+ * supplier identity can eventually serve more than one buyer, each with
+ * its own row and secret. shared_secret is encrypted at rest via
+ * Laravel's own encrypter (APP_KEY), never stored or logged in plain
+ * text.
  *
  * Managed through the Admin module's Filament resource once that module
  * exists, there is deliberately no other way to create or edit a row, so
@@ -22,6 +27,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property int $id
  * @property PunchoutEnvironment $environment
+ * @property string $from_domain
+ * @property string $from_identity
  * @property string $to_domain
  * @property string $to_identity
  * @property string $shared_secret
@@ -36,6 +43,8 @@ final class PunchoutCredential extends Model
 
     protected $fillable = [
         'environment',
+        'from_domain',
+        'from_identity',
         'to_domain',
         'to_identity',
         'shared_secret',

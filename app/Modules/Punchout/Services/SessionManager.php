@@ -7,6 +7,7 @@ namespace App\Modules\Punchout\Services;
 use App\Modules\Punchout\Contracts\SessionManagerInterface;
 use App\Modules\Punchout\Data\OutboundIdentity;
 use App\Modules\Punchout\Data\SetupRequestData;
+use App\Modules\Punchout\Enums\PunchoutEnvironment;
 use App\Modules\Punchout\Enums\PunchoutSessionStatus;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
 use App\Modules\Punchout\Models\PunchoutCredential;
@@ -85,6 +86,9 @@ final class SessionManager implements SessionManagerInterface
     public function resolveOutboundIdentity(PunchoutSession $session): OutboundIdentity
     {
         $credential = PunchoutCredential::query()
+            ->where('environment', PunchoutEnvironment::current())
+            ->where('from_domain', $session->from_domain)
+            ->where('from_identity', $session->from_identity)
             ->where('to_domain', $session->to_domain)
             ->where('to_identity', $session->to_identity)
             ->where('is_active', true)
@@ -93,7 +97,13 @@ final class SessionManager implements SessionManagerInterface
         if ($credential === null) {
             throw InvalidCredentialsException::withContext(
                 'No active credential matches this session, cannot build an outbound identity.',
-                ['session_id' => $session->id, 'to_domain' => $session->to_domain, 'to_identity' => $session->to_identity],
+                [
+                    'session_id' => $session->id,
+                    'from_domain' => $session->from_domain,
+                    'from_identity' => $session->from_identity,
+                    'to_domain' => $session->to_domain,
+                    'to_identity' => $session->to_identity,
+                ],
             );
         }
 
