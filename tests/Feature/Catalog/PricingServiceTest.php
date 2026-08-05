@@ -66,3 +66,32 @@ it('throws on a currency mismatch rather than converting', function () {
 
     (new PricingService)->resolveContractPrice($product->sku, 'USD');
 })->throws(DomainValidationException::class);
+
+it('deterministically picks the most recently created contract price when two share the same effective_from', function () {
+    $product = createTestProduct(['list_price' => '29.99', 'currency' => 'AUD']);
+
+    ContractPrice::query()->create([
+        'product_id' => $product->id,
+        'contract_reference' => 'C3N-1-ORIGINAL',
+        'price' => '25.99',
+        'currency' => 'AUD',
+        'effective_from' => now()->subDay(),
+        'effective_to' => null,
+    ]);
+
+    ContractPrice::query()->create([
+        'product_id' => $product->id,
+        'contract_reference' => 'C3N-1-CORRECTION',
+        'price' => '22.99',
+        'currency' => 'AUD',
+        'effective_from' => now()->subDay(),
+        'effective_to' => null,
+    ]);
+
+    $snapshot = (new PricingService)->resolveContractPrice($product->sku, 'AUD');
+
+    // Both rows are equally "active" as of effective_from; the second one
+    // created is the correction and must win every time this query runs,
+    // not whichever the database happens to return first.
+    expect($snapshot->contractPrice->toDecimalString())->toBe('22.99');
+});

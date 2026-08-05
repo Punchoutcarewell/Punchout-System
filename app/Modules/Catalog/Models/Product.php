@@ -96,7 +96,14 @@ final class Product extends Model
             ->where(function ($query) use ($date): void {
                 $query->whereNull('effective_to')->orWhere('effective_to', '>=', $date);
             })
+            // Two contract prices can share the same effective_from (e.g. a
+            // correction re-entered on the same date). Without a secondary
+            // sort key, which one "wins" is whatever order the database
+            // happens to return matching rows in, not something this app
+            // controls. id descending makes the most recently created row
+            // win ties deterministically.
             ->orderByDesc('effective_from')
+            ->orderByDesc('id')
             ->first();
     }
 }
