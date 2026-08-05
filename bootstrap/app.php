@@ -36,6 +36,17 @@ return Application::configure(basePath: dirname(__DIR__))
         // and /punchout/order deliberately run outside "web" (see
         // Punchout\routes.php) and should still get baseline headers.
         $middleware->append(SecurityHeaders::class);
+
+        // A preview session's browser_form_post_url points back at this
+        // app's own /admin/punchout-preview/complete (see
+        // SessionManager::startPreview()), posted to by a plain HTML form
+        // with no CSRF token, the same way a real Coupa checkout URL
+        // would be, since this app can never put its own CSRF token into
+        // a form Coupa itself renders. See Punchout\routes.php's setup/
+        // order endpoints for the same reasoning applied there.
+        $middleware->validateCsrfTokens(except: [
+            'admin/punchout-preview/complete',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Every module's exceptions map to a JSON error shape in one

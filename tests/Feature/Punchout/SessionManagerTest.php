@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Punchout\Enums\PunchoutSessionStatus;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
 use App\Modules\Punchout\Models\PunchoutCredential;
 use App\Modules\Punchout\Services\SessionManager;
@@ -46,4 +47,29 @@ it('does not resolve a Transferring session once its grace window has lapsed, an
 
     expect($manager->resolve($session->token))->toBeNull()
         ->and($session->fresh()->status->value)->toBe('transferred');
+});
+
+it('builds a usable preview session directly from a credential, with no cXML round trip', function () {
+    $credential = createTestPunchoutCredential('ALD');
+    $manager = app(SessionManager::class);
+
+    $session = $manager->startPreview($credential, 'My preview');
+
+    expect($session->is_preview)->toBeTrue()
+        ->and($session->status)->toBe(PunchoutSessionStatus::Active)
+        ->and($session->from_domain)->toBe($credential->from_domain)
+        ->and($session->from_identity)->toBe($credential->from_identity)
+        ->and($session->to_domain)->toBe($credential->to_domain)
+        ->and($session->to_identity)->toBe($credential->to_identity)
+        ->and($session->buyer_unique_name)->toBe('My preview')
+        ->and($manager->resolve($session->token))->not->toBeNull();
+});
+
+it('resolves a preview session\'s outbound identity, since its identity fields are copied straight from a real credential', function () {
+    $credential = createTestPunchoutCredential('ALD');
+    $manager = app(SessionManager::class);
+
+    $session = $manager->startPreview($credential, 'My preview');
+
+    expect(fn () => $manager->resolveOutboundIdentity($session))->not->toThrow(InvalidCredentialsException::class);
 });

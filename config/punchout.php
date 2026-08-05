@@ -67,4 +67,18 @@ return [
 
     'log_retention_days' => env('PUNCHOUT_LOG_RETENTION_DAYS', 90),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Preview session TTL
+    |--------------------------------------------------------------------------
+    |
+    | How long a session created by SessionManager::startPreview() (the
+    | Admin panel's "generate a test token" tool) stays active. Shorter
+    | than session_ttl_minutes by default: a preview link is meant to be
+    | used right away, not held onto.
+    |
+    */
+
+    'preview_ttl_minutes' => env('PUNCHOUT_PREVIEW_TTL_MINUTES', 30),
+
 ];

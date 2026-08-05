@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Shared\Models\SiteSetting;
+use Illuminate\Support\Facades\Storage;
 use Inertia\ResponseFactory;
 
 it('includes cart on a full page visit', function () {
@@ -9,6 +11,22 @@ it('includes cart on a full page visit', function () {
 
     $this->get("/storefront?token={$session->token}")
         ->assertInertia(fn ($page) => $page->has('cart'));
+});
+
+it('shares siteLogoUrl as null when no logo has been configured', function () {
+    $session = issueTestPunchoutSession();
+
+    $this->get("/storefront?token={$session->token}")
+        ->assertInertia(fn ($page) => $page->where('siteLogoUrl', null));
+});
+
+it('shares the configured site logo as a public disk URL', function () {
+    Storage::fake('public');
+    SiteSetting::current()->update(['logo_path' => 'branding/logo.png']);
+    $session = issueTestPunchoutSession();
+
+    $this->get("/storefront?token={$session->token}")
+        ->assertInertia(fn ($page) => $page->where('siteLogoUrl', Storage::disk('public')->url('branding/logo.png')));
 });
 
 it('does not evaluate the cart summary on a partial reload that does not request it', function () {

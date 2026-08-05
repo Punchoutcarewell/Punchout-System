@@ -8,11 +8,13 @@ use App\Modules\Punchout\Contracts\SessionManagerInterface;
 use App\Modules\Punchout\Data\OutboundIdentity;
 use App\Modules\Punchout\Data\SetupRequestData;
 use App\Modules\Punchout\Enums\PunchoutEnvironment;
+use App\Modules\Punchout\Enums\PunchoutOperation;
 use App\Modules\Punchout\Enums\PunchoutSessionStatus;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
 use App\Modules\Punchout\Models\PunchoutCredential;
 use App\Modules\Punchout\Models\PunchoutSession;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 /**
@@ -46,6 +48,30 @@ final class SessionManager implements SessionManagerInterface
             'operation' => $data->operation,
             'status' => PunchoutSessionStatus::Active,
             'expires_at' => Carbon::now()->addMinutes((int) config('punchout.session_ttl_minutes', 60)),
+        ]);
+    }
+
+    public function startPreview(PunchoutCredential $credential, string $label): PunchoutSession
+    {
+        return PunchoutSession::query()->create([
+            'token' => Str::random(64),
+            'buyer_cookie' => 'admin-preview-'.Str::uuid(),
+            // Same-app route, not a real Coupa checkout URL: an admin
+            // clicking all the way through to "Transfer cart to Coupa"
+            // during a preview lands on a page confirming what would have
+            // been sent, rather than a browser error from posting to a
+            // URL that does not exist.
+            'browser_form_post_url' => URL::route('admin.punchout-preview.complete'),
+            'from_domain' => $credential->from_domain,
+            'from_identity' => $credential->from_identity,
+            'to_domain' => $credential->to_domain,
+            'to_identity' => $credential->to_identity,
+            'buyer_unique_name' => $label,
+            'buyer_business_unit' => 'Admin preview',
+            'operation' => PunchoutOperation::Create,
+            'is_preview' => true,
+            'status' => PunchoutSessionStatus::Active,
+            'expires_at' => Carbon::now()->addMinutes((int) config('punchout.preview_ttl_minutes', 30)),
         ]);
     }
 

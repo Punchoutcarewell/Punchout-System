@@ -16,6 +16,7 @@ withDefaults(
 
 const page = usePage<SharedPageProps>();
 const session = computed(() => page.props.punchoutSession);
+const siteLogoUrl = computed(() => page.props.siteLogoUrl);
 const cartStore = useCartStore();
 const { error: cartError } = storeToRefs(cartStore);
 
@@ -30,7 +31,8 @@ watch(
     <div class="flex min-h-screen flex-col bg-brand-050">
         <header class="border-b border-line bg-surface px-4 py-3">
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
-                <span class="font-display text-lg font-bold text-ink-900">Carewell Group</span>
+                <img v-if="siteLogoUrl" :src="siteLogoUrl" alt="Carewell Group" class="h-8 w-auto" />
+                <span v-else class="font-display text-lg font-bold text-ink-900">Carewell Group</span>
                 <SessionRail v-if="session" :session="session" />
             </div>
         </header>

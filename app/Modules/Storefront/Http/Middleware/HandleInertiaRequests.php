@@ -6,15 +6,18 @@ namespace App\Modules\Storefront\Http\Middleware;
 
 use App\Modules\Cart\Contracts\CartServiceInterface;
 use App\Modules\Punchout\Contracts\SessionManagerInterface;
+use App\Shared\Models\SiteSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 /**
  * Shares the session rail's data (whose session this is, how long is
- * left) and the cart summary (for the sticky cart bar) on every Inertia
- * response, so individual page controllers never repeat this. Both are
- * null-safe: the "no session" and "session expired" pages render through
- * this same middleware with nothing to share.
+ * left), the cart summary (for the sticky cart bar), and the configured
+ * site logo on every Inertia response, so individual page controllers
+ * never repeat this. Session and cart are null-safe: the "no session" and
+ * "session expired" pages render through this same middleware with
+ * nothing to share for either.
  */
 final class HandleInertiaRequests extends Middleware
 {
@@ -51,6 +54,9 @@ final class HandleInertiaRequests extends Middleware
             // "cart", instead of running CartService::summary() on every
             // partial regardless of relevance.
             'cart' => fn () => $session === null ? null : $this->cart->summary($session->id)->toArray(),
+            'siteLogoUrl' => fn (): ?string => SiteSetting::current()->logo_path !== null
+                ? Storage::disk('public')->url(SiteSetting::current()->logo_path)
+                : null,
         ];
     }
 }

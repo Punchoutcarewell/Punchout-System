@@ -34,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $contact_email
  * @property string|null $supplier_setup_url
  * @property PunchoutOperation $operation
+ * @property bool $is_preview true only for a session SessionManager::startPreview() created from the Admin panel, never a real Coupa request
  * @property PunchoutSessionStatus $status
  * @property Carbon $expires_at
  * @property Carbon|null $transferring_at
@@ -60,6 +61,7 @@ final class PunchoutSession extends Model
         'contact_email',
         'supplier_setup_url',
         'operation',
+        'is_preview',
         'status',
         'expires_at',
         'transferring_at',
@@ -69,6 +71,7 @@ final class PunchoutSession extends Model
     {
         return [
             'operation' => PunchoutOperation::class,
+            'is_preview' => 'boolean',
             'status' => PunchoutSessionStatus::class,
             'expires_at' => 'datetime',
             'transferring_at' => 'datetime',

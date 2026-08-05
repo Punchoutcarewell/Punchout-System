@@ -7,6 +7,7 @@ namespace App\Modules\Punchout\Contracts;
 use App\Modules\Punchout\Data\OutboundIdentity;
 use App\Modules\Punchout\Data\SetupRequestData;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
+use App\Modules\Punchout\Models\PunchoutCredential;
 use App\Modules\Punchout\Models\PunchoutSession;
 
 /**
@@ -21,6 +22,16 @@ interface SessionManagerInterface
      * Create a new session from a validated, authenticated setup request.
      */
     public function start(SetupRequestData $data): PunchoutSession;
+
+    /**
+     * Create a session for an admin to preview the storefront as a buyer
+     * would see it, without a real Coupa round trip. Identity fields are
+     * copied from $credential so the session is fully usable, including
+     * resolveOutboundIdentity() if the admin clicks all the way through to
+     * "Transfer cart to Coupa". Always is_preview: true, see
+     * PunchoutSession::$is_preview.
+     */
+    public function startPreview(PunchoutCredential $credential, string $label): PunchoutSession;
 
     /**
      * Look up a session by its token. Returns null if the token is

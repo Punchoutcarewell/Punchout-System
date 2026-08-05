@@ -2,6 +2,7 @@
 
 namespace App\Modules\Admin;
 
+use App\Shared\Models\SiteSetting;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -16,6 +17,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -26,6 +28,11 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  */
 class AdminPanelProvider extends PanelProvider
 {
+    public function boot(): void
+    {
+        $this->loadRoutesFrom(__DIR__.'/routes.php');
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -36,6 +43,10 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->brandLogo(fn (): ?string => SiteSetting::current()->logo_path !== null
+                ? Storage::disk('public')->url(SiteSetting::current()->logo_path)
+                : null)
+            ->brandLogoHeight('2rem')
             ->discoverResources(in: __DIR__.'/Filament/Resources', for: 'App\\Modules\\Admin\\Filament\\Resources')
             ->discoverPages(in: __DIR__.'/Filament/Pages', for: 'App\\Modules\\Admin\\Filament\\Pages')
             ->pages([
