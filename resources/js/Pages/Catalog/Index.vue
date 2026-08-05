@@ -38,7 +38,7 @@ function submitSearch(): void {
         </div>
 
         <div class="grid grid-cols-1 gap-6 md:grid-cols-[240px_1fr]">
-            <aside class="rounded-2xl border border-line bg-surface p-4">
+            <aside class="self-start rounded-2xl border border-line bg-surface p-4">
                 <p class="mb-2 font-data text-[11px] font-semibold uppercase tracking-wide text-ink-500">Categories</p>
                 <CategoryTree :categories="categories" :active-category-id="categoryId" />
             </aside>

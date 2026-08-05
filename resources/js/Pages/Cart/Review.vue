@@ -86,11 +86,21 @@ function transferToCoupa(): void {
                         <td class="px-4 py-3">
                             <button
                                 type="button"
-                                class="font-data text-xs text-warn transition hover:opacity-70"
+                                class="flex h-8 w-8 items-center justify-center rounded-full text-ink-500 transition hover:bg-warn/10 hover:text-warn disabled:opacity-40"
                                 :disabled="cartStore.loading"
+                                aria-label="Remove item"
                                 @click="removeLine(line.sku)"
                             >
-                                Remove
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+                                    <path d="M4 6h12" stroke-linecap="round" />
+                                    <path d="M8 6V4.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V6" stroke-linecap="round" stroke-linejoin="round" />
+                                    <path
+                                        d="M5.5 6l.6 9.2a1.5 1.5 0 0 0 1.5 1.4h4.8a1.5 1.5 0 0 0 1.5-1.4l.6-9.2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                    <path d="M8.3 9v4.5M11.7 9v4.5" stroke-linecap="round" />
+                                </svg>
                             </button>
                         </td>
                     </tr>

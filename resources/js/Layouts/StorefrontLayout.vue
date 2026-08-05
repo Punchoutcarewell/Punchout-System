@@ -28,7 +28,7 @@ watch(
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col bg-brand-050">
+    <div class="flex min-h-screen flex-col bg-white">
         <header class="border-b border-line bg-surface/90 px-4 py-4 backdrop-blur">
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
                 <img v-if="siteLogoUrl" :src="siteLogoUrl" alt="Carewell Group" class="h-8 w-auto" />
