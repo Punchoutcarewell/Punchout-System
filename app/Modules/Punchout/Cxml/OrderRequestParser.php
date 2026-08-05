@@ -87,9 +87,9 @@ final class OrderRequestParser
             $unitPrice = Money::fromDecimal(trim($priceElement->textContent), $priceElement->getAttribute('currency'));
 
             $lines[] = new OrderRequestLineData(
-                lineNumber: (int) $itemOut->getAttribute('lineNumber'),
+                lineNumber: $this->parsePositiveInteger($itemOut->getAttribute('lineNumber'), 'ItemOut/@lineNumber'),
                 supplierPartId: $supplierPartId,
-                quantity: (int) $itemOut->getAttribute('quantity'),
+                quantity: $this->parsePositiveInteger($itemOut->getAttribute('quantity'), 'ItemOut/@quantity'),
                 unitPrice: $unitPrice,
                 unitOfMeasure: $unitOfMeasure,
                 description: $description,
@@ -101,6 +101,23 @@ final class OrderRequestParser
         }
 
         return $lines;
+    }
+
+    /**
+     * A bare (int) cast on these attributes silently turns "abc", "", "-3",
+     * and "2.5" into 0, -3, and 2 rather than rejecting them, letting a
+     * malformed OrderRequest through as a purchase order with a zero or
+     * negative quantity. Coupa's OrderRequest always carries these as
+     * positive integers, so anything else is a parsing failure, not a
+     * value to coerce.
+     */
+    private function parsePositiveInteger(string $value, string $label): int
+    {
+        if (! preg_match('/^\d+$/', $value) || (int) $value < 1) {
+            throw MalformedCxmlException::withContext("Invalid or missing [{$label}]: [{$value}].", [$label => $value]);
+        }
+
+        return (int) $value;
     }
 
     private function parseDate(string $value): DateTimeImmutable

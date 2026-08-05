@@ -80,3 +80,33 @@ it('rejects an OrderRequest with no line items', function () {
 
     (new OrderRequestParser)->parse($xml);
 })->throws(MalformedCxmlException::class);
+
+it('rejects a non-numeric lineNumber instead of silently coercing it to 0', function () {
+    $xml = str_replace('lineNumber="1"', 'lineNumber="abc"', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects a zero quantity instead of accepting a line no one can fulfil', function () {
+    $xml = str_replace('quantity="2"', 'quantity="0"', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects a negative quantity instead of silently truncating it', function () {
+    $xml = str_replace('quantity="2"', 'quantity="-3"', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects a decimal quantity instead of silently truncating it', function () {
+    $xml = str_replace('quantity="2"', 'quantity="2.5"', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects a missing quantity attribute instead of silently defaulting it to 0', function () {
+    $xml = str_replace(' quantity="2"', '', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
