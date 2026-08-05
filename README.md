@@ -72,6 +72,7 @@ All four run clean on every commit to `main`.
 
 ```bash
 php artisan punchout:simulate            # exercises the setup, start, and order-request round trip against this app's own endpoints
+php artisan punchout:doctor              # deployment sanity checks for punchout config that fails silently rather than loudly, run this in the deploy pipeline
 php artisan catalog:import <path>        # import a catalogue CSV, producing a report rather than failing silently
 php artisan catalog:validate             # fail if any active product is missing a UNSPSC code, contract price, unit of measure, or description
 ```

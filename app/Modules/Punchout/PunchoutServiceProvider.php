@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Punchout;
 
+use App\Modules\Punchout\Console\Commands\PunchoutDoctor;
 use App\Modules\Punchout\Console\Commands\SimulateCoupaPunchout;
 use App\Modules\Punchout\Contracts\PunchoutLoggerInterface;
 use App\Modules\Punchout\Contracts\PunchoutProtocolInterface;
@@ -50,7 +51,7 @@ final class PunchoutServiceProvider extends ServiceProvider
         $router->aliasMiddleware('punchout.throttle', PunchoutThrottle::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([SimulateCoupaPunchout::class]);
+            $this->commands([SimulateCoupaPunchout::class, PunchoutDoctor::class]);
         }
     }
 }
