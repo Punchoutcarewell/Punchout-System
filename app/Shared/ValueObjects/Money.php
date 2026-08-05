@@ -25,8 +25,14 @@ use JsonSerializable;
  */
 final class Money implements JsonSerializable
 {
-    /** Currencies whose minor unit is not 2 decimal places. Extend as needed. */
-    private const ZERO_DECIMAL_CURRENCIES = ['JPY', 'KRW', 'VND'];
+    /** ISO 4217 currencies with no minor unit at all. */
+    private const ZERO_DECIMAL_CURRENCIES = [
+        'BIF', 'CLP', 'DJF', 'GNF', 'ISK', 'JPY', 'KMF', 'KRW',
+        'PYG', 'RWF', 'UGX', 'UYI', 'VND', 'VUV', 'XAF', 'XOF', 'XPF',
+    ];
+
+    /** ISO 4217 currencies whose minor unit is thousandths, not hundredths. */
+    private const THREE_DECIMAL_CURRENCIES = ['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'];
 
     private function __construct(
         private readonly int $minorUnits,
@@ -46,21 +52,34 @@ final class Money implements JsonSerializable
         $currency = self::normalizeCurrency($currency);
         $exponent = self::exponentFor($currency);
 
-        // Parsed via string so a float's binary representation never has a
-        // chance to shift the amount before it is fixed into minor units.
+        // A float amount is rounded to this currency's exponent here, its
+        // binary representation is already inexact by the time it arrives
+        // as a PHP float, so this is the one place rounding is unavoidable.
+        // A string amount is never rounded: every digit is carried through
+        // to minor units using string/integer arithmetic only, so a float
+        // cast never gets a chance to shift the value.
         $decimal = is_float($amount)
             ? number_format($amount, $exponent, '.', '')
             : trim($amount);
 
-        if (! preg_match('/^-?\d+(\.\d+)?$/', $decimal)) {
+        if (! preg_match('/^(-?)(\d+)(?:\.(\d+))?$/', $decimal, $matches)) {
             throw DomainValidationException::withContext(
                 "Invalid monetary amount [{$decimal}].",
                 ['amount' => $amount, 'currency' => $currency],
             );
         }
 
-        $factor = 10 ** $exponent;
-        $minorUnits = (int) round(((float) $decimal) * $factor);
+        [, $sign, $integerPart, $fractionalPart] = $matches + ['', '', '', ''];
+
+        if (strlen($fractionalPart) > $exponent) {
+            throw DomainValidationException::withContext(
+                "Amount [{$decimal}] has more decimal places than {$currency} supports ({$exponent}).",
+                ['amount' => $amount, 'currency' => $currency],
+            );
+        }
+
+        $digits = ltrim($integerPart.str_pad($fractionalPart, $exponent, '0'), '0');
+        $minorUnits = (int) ($sign.($digits === '' ? '0' : $digits));
 
         return new self($minorUnits, $currency);
     }
@@ -173,7 +192,15 @@ final class Money implements JsonSerializable
 
     private static function exponentFor(string $currency): int
     {
-        return in_array($currency, self::ZERO_DECIMAL_CURRENCIES, true) ? 0 : 2;
+        if (in_array($currency, self::ZERO_DECIMAL_CURRENCIES, true)) {
+            return 0;
+        }
+
+        if (in_array($currency, self::THREE_DECIMAL_CURRENCIES, true)) {
+            return 3;
+        }
+
+        return 2;
     }
 
     private static function normalizeCurrency(string $currency): string

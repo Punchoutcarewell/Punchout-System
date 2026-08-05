@@ -64,3 +64,37 @@ it('compares equality by minor units and currency', function () {
 it('formats to string as amount plus currency', function () {
     expect((string) Money::fromDecimal('25.99', 'AUD'))->toBe('25.99 AUD');
 });
+
+it('rejects a string amount with more decimal places than the currency supports, rather than silently rounding it', function () {
+    Money::fromDecimal('25.999', 'AUD');
+})->throws(DomainValidationException::class);
+
+it('rounds a float amount to the currency exponent, since a float is already inexact by the time it arrives', function () {
+    $money = Money::fromDecimal(25.999, 'AUD');
+
+    expect($money->minorUnits())->toBe(2600);
+});
+
+it('supports three-decimal currencies like KWD without truncating the third digit', function () {
+    $money = Money::fromDecimal('12.345', 'KWD');
+
+    expect($money->minorUnits())->toBe(12345)
+        ->and($money->toDecimalString())->toBe('12.345');
+});
+
+it('rejects a four-decimal amount for a three-decimal currency', function () {
+    Money::fromDecimal('12.3456', 'KWD');
+})->throws(DomainValidationException::class);
+
+it('parses a negative amount without float drift', function () {
+    $money = Money::fromDecimal('-10.50', 'AUD');
+
+    expect($money->minorUnits())->toBe(-10_50)
+        ->and($money->isNegative())->toBeTrue();
+});
+
+it('parses an amount with no fractional part for a two-decimal currency', function () {
+    $money = Money::fromDecimal('10', 'AUD');
+
+    expect($money->minorUnits())->toBe(1000);
+});
