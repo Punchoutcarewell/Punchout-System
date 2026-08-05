@@ -7,6 +7,7 @@ namespace App\Modules\Orders\Services;
 use App\Modules\Orders\Contracts\PurchaseOrderServiceInterface;
 use App\Modules\Orders\Data\PurchaseOrderReceipt;
 use App\Modules\Orders\Enums\PurchaseOrderStatus;
+use App\Modules\Orders\Jobs\ReconcilePurchaseOrder;
 use App\Modules\Orders\Jobs\SendPurchaseOrderNotification;
 use App\Modules\Orders\Models\PurchaseOrder;
 use App\Modules\Orders\Models\PurchaseOrderLine;
@@ -73,6 +74,7 @@ final class PurchaseOrderService implements PurchaseOrderServiceInterface
         }
 
         SendPurchaseOrderNotification::dispatch($purchaseOrder->id);
+        ReconcilePurchaseOrder::dispatch($purchaseOrder->id);
 
         return new PurchaseOrderReceipt($purchaseOrder->id, $purchaseOrder->po_number, $purchaseOrder->status, wasAlreadyReceived: false);
     }

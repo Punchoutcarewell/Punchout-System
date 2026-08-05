@@ -37,3 +37,19 @@ it('shows the order header and lines on the view page', function () {
         ->assertSee('CW-4021')
         ->assertSee('Foam Wound Dressing');
 });
+
+it('shows the catalogue reconciliation section only when the order has a discrepancy', function () {
+    actingAsAdmin();
+    Queue::fake();
+    (app(PurchaseOrderService::class))->receive(sampleOrderRequestData('PO-1'), '<raw-xml/>');
+    $purchaseOrder = PurchaseOrder::query()->where('po_number', 'PO-1')->firstOrFail();
+
+    Livewire::test(ViewPurchaseOrder::class, ['record' => $purchaseOrder->getRouteKey()])
+        ->assertDontSee('Catalogue reconciliation');
+
+    $purchaseOrder->update(['has_discrepancy' => true, 'discrepancy_details' => 'Line 1 (CW-4021): a discrepancy explanation.']);
+
+    Livewire::test(ViewPurchaseOrder::class, ['record' => $purchaseOrder->getRouteKey()])
+        ->assertSee('Catalogue reconciliation')
+        ->assertSee('a discrepancy explanation');
+});

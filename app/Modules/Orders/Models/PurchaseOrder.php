@@ -25,6 +25,8 @@ use Illuminate\Support\Carbon;
  *                                         only ever set or read as a plain int: see PurchaseOrderServiceInterface::receive()
  * @property string $raw_payload
  * @property PurchaseOrderStatus $status
+ * @property bool $has_discrepancy
+ * @property string|null $discrepancy_details
  * @property Carbon $received_at
  * @property-read Collection<int, PurchaseOrderLine> $lines
  */
@@ -41,6 +43,8 @@ final class PurchaseOrder extends Model
         'punchout_session_id',
         'raw_payload',
         'status',
+        'has_discrepancy',
+        'discrepancy_details',
         'received_at',
     ];
 
@@ -55,6 +59,7 @@ final class PurchaseOrder extends Model
             // on every driver, which is what Money::fromDecimal() expects.
             'total' => 'decimal:2',
             'status' => PurchaseOrderStatus::class,
+            'has_discrepancy' => 'boolean',
             'received_at' => 'datetime',
         ];
     }

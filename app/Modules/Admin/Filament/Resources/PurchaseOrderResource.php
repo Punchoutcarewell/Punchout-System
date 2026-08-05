@@ -11,6 +11,7 @@ use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
@@ -54,6 +55,13 @@ final class PurchaseOrderResource extends Resource
                 TextColumn::make('total')->money(fn (PurchaseOrder $record): string => $record->currency),
                 TextColumn::make('buyer_reference')->placeholder('None'),
                 TextColumn::make('status')->badge(),
+                IconColumn::make('has_discrepancy')
+                    ->label('Discrepancy')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-exclamation-triangle')
+                    ->falseIcon('heroicon-o-check-circle')
+                    ->trueColor('warning')
+                    ->falseColor('success'),
                 TextColumn::make('received_at')->dateTime()->sortable(),
             ])
             ->defaultSort('received_at', 'desc');
@@ -71,6 +79,14 @@ final class PurchaseOrderResource extends Resource
                     TextEntry::make('total')->money(fn (PurchaseOrder $record): string => $record->currency),
                     TextEntry::make('buyer_reference')->placeholder('None'),
                     TextEntry::make('received_at')->dateTime(),
+                ]),
+            InfolistSection::make('Catalogue reconciliation')
+                ->visible(fn (PurchaseOrder $record): bool => $record->has_discrepancy)
+                ->schema([
+                    TextEntry::make('discrepancy_details')
+                        ->label('')
+                        ->color('warning')
+                        ->columnSpanFull(),
                 ]),
             InfolistSection::make('Lines')
                 ->schema([

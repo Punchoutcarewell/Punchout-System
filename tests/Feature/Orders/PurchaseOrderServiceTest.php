@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Orders\Enums\PurchaseOrderStatus;
+use App\Modules\Orders\Jobs\ReconcilePurchaseOrder;
 use App\Modules\Orders\Jobs\SendPurchaseOrderNotification;
 use App\Modules\Orders\Models\PurchaseOrder;
 use App\Modules\Orders\Services\PurchaseOrderService;
@@ -35,6 +36,7 @@ it('creates a PurchaseOrder with its lines and queues a notification', function 
         ->and($line->unit_of_measure)->toBe('BX');
 
     Queue::assertPushed(SendPurchaseOrderNotification::class, fn ($job) => $job->purchaseOrderId === $purchaseOrder->id);
+    Queue::assertPushed(ReconcilePurchaseOrder::class, fn ($job) => $job->purchaseOrderId === $purchaseOrder->id);
 });
 
 it('stores the punchout_session_id when the caller resolved one', function () {
