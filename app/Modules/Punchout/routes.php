@@ -26,11 +26,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::post('/punchout/setup', [SetupController::class, 'handle'])
-    ->middleware('throttle:punchout-setup')
+    ->middleware('punchout.throttle:punchout-setup')
     ->name('punchout.setup');
 
 Route::post('/punchout/order', [OrderRequestController::class, 'handle'])
-    ->middleware('throttle:punchout-order')
+    ->middleware('punchout.throttle:punchout-order')
     ->name('punchout.order');
 
 Route::middleware(['web'])

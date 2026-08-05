@@ -10,14 +10,12 @@ use App\Modules\Punchout\Contracts\PunchoutProtocolInterface;
 use App\Modules\Punchout\Contracts\SessionManagerInterface;
 use App\Modules\Punchout\Cxml\CxmlProtocol;
 use App\Modules\Punchout\Http\Middleware\FrameAncestors;
+use App\Modules\Punchout\Http\Middleware\PunchoutThrottle;
 use App\Modules\Punchout\Http\Middleware\RequirePunchoutSession;
 use App\Modules\Punchout\Http\Middleware\ResolvePunchoutSession;
 use App\Modules\Punchout\Services\PunchoutLogger;
 use App\Modules\Punchout\Services\SessionManager;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -49,12 +47,7 @@ final class PunchoutServiceProvider extends ServiceProvider
         $router->aliasMiddleware('punchout.resolve-session', ResolvePunchoutSession::class);
         $router->aliasMiddleware('punchout.require-session', RequirePunchoutSession::class);
         $router->aliasMiddleware('punchout.frame-ancestors', FrameAncestors::class);
-
-        // Both endpoints are public and accept arbitrary XML from the
-        // internet; rate limiting by IP is a cheap first line of defense
-        // against abuse independent of credential validation.
-        RateLimiter::for('punchout-setup', fn (Request $request): Limit => Limit::perMinute(30)->by($request->ip()));
-        RateLimiter::for('punchout-order', fn (Request $request): Limit => Limit::perMinute(30)->by($request->ip()));
+        $router->aliasMiddleware('punchout.throttle', PunchoutThrottle::class);
 
         if ($this->app->runningInConsole()) {
             $this->commands([SimulateCoupaPunchout::class]);
