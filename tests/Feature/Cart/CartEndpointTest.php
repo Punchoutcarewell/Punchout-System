@@ -40,7 +40,9 @@ it('returns a 404 for an unknown SKU', function () {
     $this->postJson("/storefront/cart-api/items?token={$session->token}", [
         'sku' => 'DOES-NOT-EXIST',
         'quantity' => 1,
-    ])->assertStatus(404);
+    ])
+        ->assertStatus(404)
+        ->assertJsonStructure(['message']);
 });
 
 it('returns a validation error for a zero quantity', function () {
@@ -83,5 +85,23 @@ it('returns a 404 removing a SKU that was never added', function () {
     $this->postJson("/storefront/cart-api/items?token={$session->token}", ['sku' => $product->sku, 'quantity' => 1]);
 
     $this->deleteJson("/storefront/cart-api/items/CW-NEVER-ADDED?token={$session->token}")
-        ->assertStatus(404);
+        ->assertStatus(404)
+        ->assertJsonStructure(['message']);
+});
+
+it('updates and removes a line for a SKU containing characters that must be URL-encoded', function () {
+    $session = issueTestPunchoutSession();
+    $product = createTestProduct(['sku' => 'CW 40&21#a', 'list_price' => '10.00', 'currency' => 'AUD']);
+
+    $this->postJson("/storefront/cart-api/items?token={$session->token}", ['sku' => $product->sku, 'quantity' => 1]);
+
+    $encodedSku = rawurlencode($product->sku);
+
+    $this->patchJson("/storefront/cart-api/items/{$encodedSku}?token={$session->token}", ['quantity' => 3])
+        ->assertOk()
+        ->assertJsonPath('lines.0.quantity', 3);
+
+    $this->deleteJson("/storefront/cart-api/items/{$encodedSku}?token={$session->token}")
+        ->assertOk()
+        ->assertJson(['lines' => [], 'itemCount' => 0]);
 });
