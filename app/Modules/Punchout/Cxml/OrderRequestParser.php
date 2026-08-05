@@ -51,6 +51,16 @@ final class OrderRequestParser
 
         $buyerReference = $reader->text('Extrinsic[@name="buyerReference"]', $header);
 
+        // Not part of the standard OrderRequest schema: this is a
+        // best-effort correlation key, present only if Coupa happens to
+        // echo the originating punchout session's BuyerCookie back as a
+        // custom Extrinsic. Absent by default until a real Coupa-issued
+        // specimen confirms whether (and under what name) it does, see
+        // this class's own docblock. Null here just means the eventual
+        // PurchaseOrder is not linked back to a punchout_session, not a
+        // parsing failure.
+        $buyerCookie = $reader->text('Extrinsic[@name="buyerCookie"]', $header);
+
         return new OrderRequestData(
             fromDomain: $credentials->fromDomain,
             fromIdentity: $credentials->fromIdentity,
@@ -63,6 +73,7 @@ final class OrderRequestParser
             orderDate: $orderDate,
             total: $total,
             buyerReference: $buyerReference,
+            buyerCookie: $buyerCookie,
             lines: $this->lines($reader, $orderRequest),
         );
     }

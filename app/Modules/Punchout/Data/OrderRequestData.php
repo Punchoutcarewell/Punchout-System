@@ -30,6 +30,7 @@ final readonly class OrderRequestData
         public DateTimeImmutable $orderDate,
         public Money $total,
         public ?string $buyerReference,
+        public ?string $buyerCookie,
         public array $lines,
     ) {}
 }

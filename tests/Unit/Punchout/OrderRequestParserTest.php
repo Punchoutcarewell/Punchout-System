@@ -110,3 +110,21 @@ it('rejects a missing quantity attribute instead of silently defaulting it to 0'
 
     (new OrderRequestParser)->parse($xml);
 })->throws(MalformedCxmlException::class);
+
+it('leaves buyerCookie null when the OrderRequest carries no such Extrinsic, which is the expected default case', function () {
+    $data = (new OrderRequestParser)->parse(orderRequestFixtureXml());
+
+    expect($data->buyerCookie)->toBeNull();
+});
+
+it('captures buyerCookie when the OrderRequest happens to echo it back as an Extrinsic', function () {
+    $xml = str_replace(
+        '<Extrinsic name="buyerReference">REQ-4471</Extrinsic>',
+        '<Extrinsic name="buyerReference">REQ-4471</Extrinsic><Extrinsic name="buyerCookie">99ea3c4c8cf9f6dc905a6b6772daa0d1</Extrinsic>',
+        orderRequestFixtureXml(),
+    );
+
+    $data = (new OrderRequestParser)->parse($xml);
+
+    expect($data->buyerCookie)->toBe('99ea3c4c8cf9f6dc905a6b6772daa0d1');
+});

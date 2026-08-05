@@ -37,6 +37,23 @@ it('creates a PurchaseOrder with its lines and queues a notification', function 
     Queue::assertPushed(SendPurchaseOrderNotification::class, fn ($job) => $job->purchaseOrderId === $purchaseOrder->id);
 });
 
+it('stores the punchout_session_id when the caller resolved one', function () {
+    Queue::fake();
+    $session = issueTestPunchoutSession();
+
+    app(PurchaseOrderService::class)->receive(sampleOrderRequestData('PO-LINKED'), '<raw-xml/>', $session->id);
+
+    expect(PurchaseOrder::query()->where('po_number', 'PO-LINKED')->firstOrFail()->punchout_session_id)->toBe($session->id);
+});
+
+it('leaves punchout_session_id null when the caller could not resolve one, which is the expected default case', function () {
+    Queue::fake();
+
+    app(PurchaseOrderService::class)->receive(sampleOrderRequestData('PO-UNLINKED'), '<raw-xml/>');
+
+    expect(PurchaseOrder::query()->where('po_number', 'PO-UNLINKED')->firstOrFail()->punchout_session_id)->toBeNull();
+});
+
 it('is idempotent on a repeated po_number: no duplicate order, no second notification', function () {
     Queue::fake();
 

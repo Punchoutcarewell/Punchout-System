@@ -12,6 +12,7 @@ use App\Modules\Punchout\Enums\PunchoutMessageType;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
 use App\Modules\Punchout\Exceptions\MalformedCxmlException;
 use App\Modules\Punchout\Models\PunchoutLog;
+use App\Modules\Punchout\Models\PunchoutSession;
 use App\Modules\Punchout\Services\CredentialValidator;
 use App\Modules\Punchout\Services\PunchoutLogger;
 use Illuminate\Http\Request;
@@ -115,7 +116,7 @@ final class OrderRequestController
             );
         }
 
-        $this->purchaseOrders->receive($data, $rawXml);
+        $this->purchaseOrders->receive($data, $rawXml, $this->resolvePunchoutSessionId($data->buyerCookie));
 
         $responseXml = $this->protocol->buildOrderResponse(OrderResponseData::accepted());
 
@@ -128,5 +129,23 @@ final class OrderRequestController
     private function xmlResponse(string $xml, int $status): Response
     {
         return response($xml, $status)->header('Content-Type', 'text/xml; charset=UTF-8');
+    }
+
+    /**
+     * Best-effort only: $buyerCookie is null whenever Coupa's OrderRequest
+     * does not echo it back (the expected case until a real specimen
+     * confirms otherwise, see OrderRequestParser). A miss here is not an
+     * error, it just means this PurchaseOrder is never linked back to the
+     * punchout_session that produced it.
+     */
+    private function resolvePunchoutSessionId(?string $buyerCookie): ?int
+    {
+        if ($buyerCookie === null) {
+            return null;
+        }
+
+        $id = PunchoutSession::query()->where('buyer_cookie', $buyerCookie)->value('id');
+
+        return $id !== null ? (int) $id : null;
     }
 }

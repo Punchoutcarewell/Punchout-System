@@ -19,7 +19,7 @@ final class PurchaseOrderService implements PurchaseOrderServiceInterface
 {
     public function __construct(private readonly CxmlSecretRedactor $redactor) {}
 
-    public function receive(OrderRequestData $data, string $rawPayload): PurchaseOrderReceipt
+    public function receive(OrderRequestData $data, string $rawPayload, ?int $punchoutSessionId = null): PurchaseOrderReceipt
     {
         $existing = PurchaseOrder::query()->where('po_number', $data->poNumber)->first();
 
@@ -33,13 +33,14 @@ final class PurchaseOrderService implements PurchaseOrderServiceInterface
         $redactedPayload = $this->redactor->redact($rawPayload);
 
         try {
-            $purchaseOrder = DB::transaction(function () use ($data, $redactedPayload): PurchaseOrder {
+            $purchaseOrder = DB::transaction(function () use ($data, $redactedPayload, $punchoutSessionId): PurchaseOrder {
                 $purchaseOrder = PurchaseOrder::query()->create([
                     'po_number' => $data->poNumber,
                     'order_date' => $data->orderDate,
                     'total' => $data->total->toDecimalString(),
                     'currency' => $data->total->currency(),
                     'buyer_reference' => $data->buyerReference,
+                    'punchout_session_id' => $punchoutSessionId,
                     'raw_payload' => $redactedPayload,
                     'status' => PurchaseOrderStatus::Received,
                     'received_at' => now(),

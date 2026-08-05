@@ -118,6 +118,7 @@ function sampleOrderRequestData(string $poNumber = 'PO-1'): OrderRequestData
         orderDate: new DateTimeImmutable('2026-08-10T10:00:00-05:00'),
         total: Money::fromDecimal('25.99', 'AUD'),
         buyerReference: 'REQ-123',
+        buyerCookie: null,
         lines: [
             new OrderRequestLineData(
                 lineNumber: 1,

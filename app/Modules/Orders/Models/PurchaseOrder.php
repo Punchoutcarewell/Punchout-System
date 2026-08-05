@@ -21,6 +21,8 @@ use Illuminate\Support\Carbon;
  * @property string $total
  * @property string $currency
  * @property string|null $buyer_reference
+ * @property int|null $punchout_session_id opaque FK into Punchout's punchout_sessions,
+ *                                         only ever set or read as a plain int: see PurchaseOrderServiceInterface::receive()
  * @property string $raw_payload
  * @property PurchaseOrderStatus $status
  * @property Carbon $received_at
@@ -36,6 +38,7 @@ final class PurchaseOrder extends Model
         'total',
         'currency',
         'buyer_reference',
+        'punchout_session_id',
         'raw_payload',
         'status',
         'received_at',
@@ -45,6 +48,7 @@ final class PurchaseOrder extends Model
     {
         return [
             'order_date' => 'datetime',
+            'punchout_session_id' => 'integer',
             // Explicit decimal cast: sqlite's PDO driver returns an
             // uncast decimal column as a PHP float, MySQL/Postgres return
             // a string. This forces a consistent fixed-precision string
