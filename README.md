@@ -88,3 +88,5 @@ php artisan catalog:validate             # fail if any active product is missing
 - `ORDERS_NOTIFICATION_EMAIL` (`config/orders.php`) defaults to a placeholder address, set it in `.env` before this matters in any real environment.
 
 All three are flagged directly in the relevant code's docblocks and should be resolved once GPCS answers those questions.
+
+Separately, an internal gap rather than a GPCS question: PunchoutCredentialResource and ContractPriceResource have no audit trail of who changed a credential or a contract price, or when. Worth adding once there is a concrete need to answer that question, see PunchoutCredentialResource's docblock.

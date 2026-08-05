@@ -20,4 +20,19 @@ return [
 
     'default_currency' => env('CART_DEFAULT_CURRENCY', 'AUD'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Maximum line quantity
+    |--------------------------------------------------------------------------
+    |
+    | cart_items.quantity is an unsigned integer with no cap of its own, a
+    | typo or a scripted abuse attempt could otherwise set a line to
+    | billions of units. No real Carewell order needs anywhere near this
+    | many units of anything on one line; this is a sanity ceiling, not a
+    | business rule GPCS needs to confirm.
+    |
+    */
+
+    'max_quantity' => env('CART_MAX_QUANTITY', 9999),
+
 ];

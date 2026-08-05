@@ -28,6 +28,17 @@ use Filament\Tables\Table;
  * with the real value on edit (see EditPunchoutCredential), never shown
  * in the table, and only saved at all if the admin actually types a new
  * value, see the dehydrated() callback on the form field.
+ *
+ * No audit log of who changed a credential (or, on ContractPriceResource,
+ * a contract price) or when: every admin authenticates as a real User,
+ * but there is currently no separate record of the edit itself. Both
+ * resources sit exactly where an audit trail matters most, a wrong
+ * shared_secret breaks every buyer's punchout session, a wrong contract
+ * price is the precise thing the Category Manager's go-live check exists
+ * to catch. Worth adding (a spatie/laravel-activitylog-style approach
+ * would fit this Filament setup with minimal new code) once there is a
+ * concrete need to answer "who changed this and when", not implemented
+ * speculatively here.
  */
 final class PunchoutCredentialResource extends Resource
 {

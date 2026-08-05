@@ -94,6 +94,24 @@ it('rejects a quantity below 1', function () {
     app(CartService::class)->addItem($sessionId, $product->sku, 0);
 })->throws(DomainValidationException::class);
 
+it('rejects a quantity beyond the configured maximum', function () {
+    $sessionId = issueTestPunchoutSession()->id;
+    $product = createTestProduct();
+
+    app(CartService::class)->addItem($sessionId, $product->sku, 10_000);
+})->throws(DomainValidationException::class);
+
+it('accepts a quantity exactly at the configured maximum', function () {
+    $sessionId = issueTestPunchoutSession()->id;
+    $product = createTestProduct(['list_price' => '1.00', 'currency' => 'AUD']);
+
+    config(['cart.max_quantity' => 100]);
+
+    $summary = app(CartService::class)->addItem($sessionId, $product->sku, 100);
+
+    expect($summary->lines[0]->quantity)->toBe(100);
+});
+
 it('updates a line quantity', function () {
     $sessionId = issueTestPunchoutSession()->id;
     $product = createTestProduct(['sku' => 'CW-4021', 'list_price' => '10.00', 'currency' => 'AUD']);

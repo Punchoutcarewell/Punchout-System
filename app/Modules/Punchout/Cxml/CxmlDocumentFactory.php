@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DOMDocument;
 use DOMElement;
 use DOMImplementation;
+use Illuminate\Support\Str;
 
 /**
  * Builds a fresh cXML document with the standard DOCTYPE and a payloadID
@@ -39,7 +40,11 @@ final class CxmlDocumentFactory
 
     public function payloadId(): string
     {
-        return uniqid('', true).'@carewellgroup.com.au';
+        // uniqid() is time-based, not a real uniqueness guarantee, two
+        // payloads built within the same microsecond on the same PHP-FPM
+        // worker (a burst of concurrent transfers) could theoretically
+        // collide. A UUID is a genuine uniqueness guarantee.
+        return Str::uuid()->toString().'@carewellgroup.com.au';
     }
 
     public function timestamp(): string

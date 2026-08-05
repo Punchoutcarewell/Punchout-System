@@ -38,8 +38,10 @@ final class CartSnapshotFactory
             );
         }
 
-        $lines = $cart->items->map(function (CartItem $item) use ($cart): CartLineSnapshot {
-            $priceSnapshot = $this->pricing->resolveContractPrice($item->sku, $cart->currency);
+        $priceSnapshots = $this->pricing->resolveContractPrices($cart->items->pluck('sku')->all(), $cart->currency);
+
+        $lines = $cart->items->map(function (CartItem $item) use ($priceSnapshots): CartLineSnapshot {
+            $priceSnapshot = $priceSnapshots[$item->sku];
 
             return new CartLineSnapshot(
                 supplierPartId: $priceSnapshot->supplierPartId,

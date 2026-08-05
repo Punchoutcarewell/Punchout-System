@@ -2,6 +2,7 @@
 
 use App\Shared\Exceptions\DomainValidationException;
 use App\Shared\Exceptions\NotFoundException;
+use App\Shared\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -30,6 +31,11 @@ return Application::configure(basePath: dirname(__DIR__))
             | Request::HEADER_X_FORWARDED_HOST
             | Request::HEADER_X_FORWARDED_PORT
             | Request::HEADER_X_FORWARDED_PROTO);
+
+        // Appended globally, not just to the "web" group: /punchout/setup
+        // and /punchout/order deliberately run outside "web" (see
+        // Punchout\routes.php) and should still get baseline headers.
+        $middleware->append(SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Every module's exceptions map to a JSON error shape in one

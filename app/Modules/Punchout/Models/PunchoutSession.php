@@ -28,6 +28,11 @@ use Illuminate\Support\Carbon;
  * @property string|null $buyer_unique_name
  * @property string|null $buyer_business_unit
  * @property string|null $buyer_country
+ * @property string|null $buyer_first_name
+ * @property string|null $buyer_last_name
+ * @property string|null $contact_name
+ * @property string|null $contact_email
+ * @property string|null $supplier_setup_url
  * @property PunchoutOperation $operation
  * @property PunchoutSessionStatus $status
  * @property Carbon $expires_at
@@ -49,6 +54,11 @@ final class PunchoutSession extends Model
         'buyer_unique_name',
         'buyer_business_unit',
         'buyer_country',
+        'buyer_first_name',
+        'buyer_last_name',
+        'contact_name',
+        'contact_email',
+        'supplier_setup_url',
         'operation',
         'status',
         'expires_at',

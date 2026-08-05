@@ -38,7 +38,7 @@ final class CartController
     {
         $data = $request->validate([
             'sku' => ['required', 'string'],
-            'quantity' => ['required', 'integer', 'min:1'],
+            'quantity' => ['required', 'integer', 'min:1', 'max:'.config('cart.max_quantity', 9999)],
         ]);
 
         $summary = $this->cart->addItem($this->currentSessionId(), $data['sku'], $data['quantity']);
@@ -49,7 +49,7 @@ final class CartController
     public function update(Request $request, string $sku): JsonResponse
     {
         $data = $request->validate([
-            'quantity' => ['required', 'integer', 'min:1'],
+            'quantity' => ['required', 'integer', 'min:1', 'max:'.config('cart.max_quantity', 9999)],
         ]);
 
         $summary = $this->cart->updateQuantity($this->currentSessionId(), $sku, $data['quantity']);

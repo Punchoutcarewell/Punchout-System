@@ -55,6 +55,16 @@ it('returns a validation error for a zero quantity', function () {
     ])->assertStatus(422);
 });
 
+it('returns a validation error for a quantity beyond the configured maximum', function () {
+    $session = issueTestPunchoutSession();
+    $product = createTestProduct();
+
+    $this->postJson("/storefront/cart-api/items?token={$session->token}", [
+        'sku' => $product->sku,
+        'quantity' => 10_000,
+    ])->assertStatus(422);
+});
+
 it('updates a line quantity over the JSON API', function () {
     $session = issueTestPunchoutSession();
     $product = createTestProduct(['sku' => 'CW-4021', 'list_price' => '10.00', 'currency' => 'AUD']);

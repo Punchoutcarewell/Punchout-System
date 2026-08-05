@@ -107,12 +107,20 @@ final class CatalogSearchService implements CatalogSearchInterface
             return;
         }
 
-        $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $query).'%';
+        // Backslash escaped first, then the wildcard characters: a query
+        // containing a literal backslash must not be misread as escaping
+        // the % or _ that follows it. The ESCAPE '\' clause is what
+        // actually makes these escapes take effect, without it SQLite (no
+        // default LIKE escape character, unlike MySQL) treats "\%" as a
+        // literal backslash followed by a still-live wildcard, silently
+        // breaking search for any product name or SKU containing % or _
+        // and failing to neutralise a user-typed wildcard.
+        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $query).'%';
 
         $builder->where(function (Builder $inner) use ($like): void {
-            $inner->where('name', 'like', $like)
-                ->orWhere('sku', 'like', $like)
-                ->orWhere('description', 'like', $like);
+            $inner->whereRaw('name LIKE ? ESCAPE ?', [$like, '\\'])
+                ->orWhereRaw('sku LIKE ? ESCAPE ?', [$like, '\\'])
+                ->orWhereRaw('description LIKE ? ESCAPE ?', [$like, '\\']);
         });
     }
 

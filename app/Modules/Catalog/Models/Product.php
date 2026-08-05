@@ -87,9 +87,23 @@ final class Product extends Model
         return $this->hasMany(ContractPrice::class);
     }
 
+    /**
+     * When contractPrices has already been eager-loaded (see
+     * PricingService::resolveContractPrices(), which loads it for every
+     * product in one query precisely so this can avoid one), this resolves
+     * entirely in memory instead of issuing a fresh query, the same way
+     * Catalog\Services\CatalogSearchService and CartSnapshotFactory rely on
+     * loadMissing()'d relations elsewhere. Falls back to the query-based
+     * path otherwise, so a single, unbatched lookup (e.g.
+     * ProductPageController) is unaffected.
+     */
     public function activeContractPrice(?Carbon $asOf = null): ?ContractPrice
     {
         $date = $asOf ?? now();
+
+        if ($this->relationLoaded('contractPrices')) {
+            return self::pickActiveContractPrice($this->contractPrices, $date);
+        }
 
         return $this->contractPrices()
             ->where('effective_from', '<=', $date)
@@ -101,9 +115,29 @@ final class Product extends Model
             // sort key, which one "wins" is whatever order the database
             // happens to return matching rows in, not something this app
             // controls. id descending makes the most recently created row
-            // win ties deterministically.
+            // win ties deterministically. Kept identical to
+            // pickActiveContractPrice()'s in-memory ordering below, see
+            // ProductContractPriceParityTest for the test that guards it.
             ->orderByDesc('effective_from')
             ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * @param  Collection<int, ContractPrice>  $contractPrices
+     */
+    private static function pickActiveContractPrice(Collection $contractPrices, Carbon $date): ?ContractPrice
+    {
+        return $contractPrices
+            ->filter(fn (ContractPrice $contractPrice): bool => $contractPrice->effective_from->lte($date)
+                && ($contractPrice->effective_to === null || $contractPrice->effective_to->gte($date)))
+            // Two stable sorts, lower-priority key first: sorting by id
+            // desc and then by effective_from desc leaves ties (same
+            // effective_from) still ordered by id desc, since a stable
+            // sort preserves relative order among equal keys from the
+            // previous pass. Same net ordering as the SQL ORDER BY above.
+            ->sortByDesc('id')
+            ->sortByDesc('effective_from')
             ->first();
     }
 }

@@ -109,6 +109,15 @@ final class CartService implements CartServiceInterface
                 ['quantity' => $quantity],
             );
         }
+
+        $maxQuantity = (int) config('cart.max_quantity', 9999);
+
+        if ($quantity > $maxQuantity) {
+            throw DomainValidationException::withContext(
+                "Quantity must not exceed {$maxQuantity}.",
+                ['quantity' => $quantity, 'max_quantity' => $maxQuantity],
+            );
+        }
     }
 
     private function requireCart(int $sessionId): Cart

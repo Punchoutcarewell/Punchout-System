@@ -22,6 +22,39 @@ it('finds a product by SKU', function () {
     expect($results->total())->toBe(1);
 });
 
+it('finds a product whose name contains a literal percent character', function () {
+    createTestProduct(['sku' => 'CW-1001', 'name' => '50% Cotton Gauze', 'description' => '50% Cotton Gauze']);
+    createTestProduct(['sku' => 'CW-1002', 'name' => 'Standard Wheelchair', 'description' => 'Folding frame wheelchair']);
+
+    $results = (new CatalogSearchService)->search('50%');
+
+    expect($results->total())->toBe(1)
+        ->and($results->items()[0]->sku)->toBe('CW-1001');
+});
+
+it('finds a product whose SKU contains a literal underscore character', function () {
+    createTestProduct(['sku' => 'CW_1001', 'name' => 'Foam Wound Dressing']);
+    createTestProduct(['sku' => 'CW-1002', 'name' => 'Standard Wheelchair']);
+
+    $results = (new CatalogSearchService)->search('CW_1001');
+
+    expect($results->total())->toBe(1)
+        ->and($results->items()[0]->sku)->toBe('CW_1001');
+});
+
+it('does not let an underscore in the search query act as a wildcard matching any character', function () {
+    createTestProduct(['sku' => 'CWA1001', 'name' => 'Foam Wound Dressing']);
+    createTestProduct(['sku' => 'CW_1001', 'name' => 'Standard Wheelchair']);
+
+    // "_" is a single-character SQL wildcard; typed literally by a buyer
+    // searching for a real underscore-containing SKU, it must not also
+    // match "CWA1001" (where "_" would stand in for "A").
+    $results = (new CatalogSearchService)->search('CW_1001');
+
+    expect($results->total())->toBe(1)
+        ->and($results->items()[0]->sku)->toBe('CW_1001');
+});
+
 it('excludes inactive products', function () {
     createTestProduct(['name' => 'Retired Item', 'is_active' => false]);
 

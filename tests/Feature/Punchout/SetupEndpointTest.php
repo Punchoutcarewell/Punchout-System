@@ -23,7 +23,12 @@ it('accepts a valid setup request and creates a session', function () {
     $session = PunchoutSession::query()->first();
     expect($session->buyer_cookie)->toBe('99ea3c4c8cf9f6dc905a6b6772daa0d1')
         ->and($session->buyer_user_email)->toBe('maryanne.krzeminski@coupa.com')
-        ->and($session->buyer_business_unit)->toBe('COUPA');
+        ->and($session->buyer_business_unit)->toBe('COUPA')
+        ->and($session->buyer_first_name)->toBe('Mary Anne')
+        ->and($session->buyer_last_name)->toBe('Krzeminski')
+        ->and($session->contact_name)->toBe('maryanne.krzeminski@coupa.com')
+        ->and($session->contact_email)->toBe('maryanne.krzeminski@coupa.com')
+        ->and($session->supplier_setup_url)->toBe('https://uttest.free.beeceptor.com');
 });
 
 it('honours X-Forwarded-Proto so the StartPage URL is https behind a proxy', function () {

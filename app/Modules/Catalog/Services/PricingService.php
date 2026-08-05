@@ -25,10 +25,45 @@ final class PricingService implements PricingServiceInterface
             );
         }
 
+        return $this->snapshotFor($product, $currency);
+    }
+
+    public function resolveContractPrices(array $skus, string $currency): array
+    {
+        $products = Product::query()
+            ->whereIn('sku', $skus)
+            ->where('is_active', true)
+            // Eager-loaded so Product::activeContractPrice() resolves in
+            // memory per product below, not with a fresh query each time,
+            // this is the entire point of this method existing.
+            ->with('contractPrices')
+            ->get()
+            ->keyBy('sku');
+
+        $snapshots = [];
+
+        foreach ($skus as $sku) {
+            $product = $products->get($sku);
+
+            if ($product === null) {
+                throw ProductNotFoundException::withContext(
+                    "No active product found for SKU [{$sku}].",
+                    ['sku' => $sku],
+                );
+            }
+
+            $snapshots[$sku] = $this->snapshotFor($product, $currency);
+        }
+
+        return $snapshots;
+    }
+
+    private function snapshotFor(Product $product, string $currency): ContractPriceSnapshot
+    {
         if (strtoupper($product->currency) !== strtoupper($currency)) {
             throw DomainValidationException::withContext(
-                "Product [{$sku}] is priced in {$product->currency}, not the requested {$currency}. Currency conversion is not supported.",
-                ['sku' => $sku, 'product_currency' => $product->currency, 'requested_currency' => $currency],
+                "Product [{$product->sku}] is priced in {$product->currency}, not the requested {$currency}. Currency conversion is not supported.",
+                ['sku' => $product->sku, 'product_currency' => $product->currency, 'requested_currency' => $currency],
             );
         }
 

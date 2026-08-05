@@ -44,7 +44,13 @@ final class HandleInertiaRequests extends Middleware
                 'businessUnit' => $session->buyer_business_unit,
                 'expiresAt' => $session->expires_at->toIso8601String(),
             ],
-            'cart' => $session === null ? null : $this->cart->summary($session->id)->toArray(),
+            // A plain closure, not eagerly evaluated: still runs on every
+            // full page visit (StorefrontLayout hydrates the cart store
+            // from this prop on load, same as before), but Inertia skips
+            // invoking it on a partial reload that does not request
+            // "cart", instead of running CartService::summary() on every
+            // partial regardless of relevance.
+            'cart' => fn () => $session === null ? null : $this->cart->summary($session->id)->toArray(),
         ];
     }
 }
