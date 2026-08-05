@@ -4,6 +4,7 @@ import { Link } from '@inertiajs/vue3';
 import QuantityStepper from '@/Components/QuantityStepper.vue';
 import { useCartStore } from '@/Stores/cart';
 import { formatMoney } from '@/types/money';
+import { hasPack, packQuantityLabel, pricePerLabel } from '@/utils/packSize';
 import type { ProductSummary } from '@/types/catalog';
 
 const props = defineProps<{
@@ -11,7 +12,10 @@ const props = defineProps<{
 }>();
 
 const cartStore = useCartStore();
-const quantity = ref(props.product.packSize > 0 ? props.product.packSize : 1);
+// Always 1: for a packed product this means 1 pack, not 1 piece, price
+// and packSize together already say what that pack contains. Defaulting
+// this to packSize used to make "quantity" look like a piece count.
+const quantity = ref(1);
 const adding = ref(false);
 
 async function addToCart(): Promise<void> {
@@ -43,9 +47,12 @@ async function addToCart(): Promise<void> {
             <h3 class="font-display text-sm font-semibold text-ink-900">{{ product.name }}</h3>
         </Link>
         <p class="mt-1 font-data text-xs text-ink-500">
-            {{ product.sku }} &middot; {{ product.unitOfMeasure }}, pack of {{ product.packSize }}
+            {{ product.sku }} &middot; {{ packQuantityLabel(product.unitOfMeasure, product.packSize) }}
         </p>
-        <p class="mt-2 font-data text-lg font-semibold text-ink-900">{{ formatMoney(product.listPrice) }}</p>
+        <p class="mt-2 font-data text-lg font-semibold text-ink-900">
+            {{ formatMoney(product.listPrice) }}
+            <span v-if="hasPack(product.packSize)" class="text-xs font-normal text-ink-500">{{ pricePerLabel(product.packSize) }}</span>
+        </p>
         <div class="mt-3 flex items-center gap-2">
             <QuantityStepper v-model="quantity" :min="1" />
             <button

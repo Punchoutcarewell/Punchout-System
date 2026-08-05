@@ -11,6 +11,7 @@ use App\Modules\Catalog\Models\Product;
 use App\Shared\Exceptions\DomainValidationException;
 use App\Shared\ValueObjects\Money;
 use App\Shared\ValueObjects\UnspscCode;
+use Illuminate\Support\Facades\Storage;
 
 final class PricingService implements PricingServiceInterface
 {
@@ -85,6 +86,8 @@ final class PricingService implements PricingServiceInterface
             supplierPartAuxiliaryId: $product->supplier_part_auxiliary_id,
             manufacturerPartId: $product->manufacturer_part_id,
             manufacturerName: $product->manufacturer_name,
+            packSize: $product->pack_size,
+            imagePath: $product->image_path === null ? null : Storage::disk('public')->url($product->image_path),
         );
     }
 }

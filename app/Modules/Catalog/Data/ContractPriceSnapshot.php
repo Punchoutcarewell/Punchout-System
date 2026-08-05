@@ -26,5 +26,8 @@ final readonly class ContractPriceSnapshot
         public ?string $supplierPartAuxiliaryId,
         public ?string $manufacturerPartId,
         public ?string $manufacturerName,
+        /** Null means not sold in packs, see Product::$pack_size. */
+        public ?int $packSize,
+        public ?string $imagePath,
     ) {}
 }

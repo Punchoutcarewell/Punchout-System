@@ -24,6 +24,31 @@ it('adds a new item and creates the cart on first add', function () {
         ->and($summary->itemCount)->toBe(2);
 });
 
+it('carries imagePath, packSize, and unitOfMeasure onto the cart line as a display-cache snapshot', function () {
+    $sessionId = issueTestPunchoutSession()->id;
+    $product = createTestProduct([
+        'sku' => 'CW-9013',
+        'pack_size' => 100,
+        'unit_of_measure' => 'PK',
+        'image_path' => 'products/courier-bag.jpg',
+    ]);
+
+    $summary = app(CartService::class)->addItem($sessionId, $product->sku, 1);
+
+    expect($summary->lines[0]->packSize)->toBe(100)
+        ->and($summary->lines[0]->unitOfMeasure)->toBe('PK')
+        ->and($summary->lines[0]->imagePath)->toEndWith('/storage/products/courier-bag.jpg');
+});
+
+it('leaves packSize null on the cart line for a product not sold in packs', function () {
+    $sessionId = issueTestPunchoutSession()->id;
+    $product = createTestProduct(['sku' => 'CW-4021', 'pack_size' => null]);
+
+    $summary = app(CartService::class)->addItem($sessionId, $product->sku, 1);
+
+    expect($summary->lines[0]->packSize)->toBeNull();
+});
+
 it('increments quantity when the same SKU is added twice', function () {
     $sessionId = issueTestPunchoutSession()->id;
     $product = createTestProduct(['sku' => 'CW-4021', 'list_price' => '10.00', 'currency' => 'AUD']);

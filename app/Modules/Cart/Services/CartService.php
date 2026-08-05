@@ -50,9 +50,12 @@ final class CartService implements CartServiceInterface
                     'cart_id' => $cart->id,
                     'sku' => $priceSnapshot->sku,
                     'description' => $priceSnapshot->description,
+                    'image_path' => $priceSnapshot->imagePath,
                     'unit_price' => $priceSnapshot->contractPrice->toDecimalString(),
                     'currency' => $priceSnapshot->contractPrice->currency(),
                     'quantity' => $quantity,
+                    'pack_size' => $priceSnapshot->packSize,
+                    'unit_of_measure' => $priceSnapshot->unitOfMeasure,
                 ]);
             } catch (UniqueConstraintViolationException) {
                 // Lost a race against another request adding the same
@@ -168,9 +171,12 @@ final class CartService implements CartServiceInterface
             return new CartLineSummary(
                 sku: $item->sku,
                 description: $item->description,
+                imagePath: $item->image_path,
                 quantity: $item->quantity,
                 unitPrice: $unitPrice,
                 lineTotal: $unitPrice->multiply($item->quantity),
+                packSize: $item->pack_size,
+                unitOfMeasure: $item->unit_of_measure,
             );
         })->all();
 

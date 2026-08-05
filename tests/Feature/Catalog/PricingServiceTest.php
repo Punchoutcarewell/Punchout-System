@@ -51,6 +51,38 @@ it('ignores an expired contract price and falls back to list price', function ()
     expect($snapshot->contractPrice->toDecimalString())->toBe('29.99');
 });
 
+it('carries packSize through for a product sold in packs', function () {
+    $product = createTestProduct(['pack_size' => 25]);
+
+    $snapshot = (new PricingService)->resolveContractPrice($product->sku, 'AUD');
+
+    expect($snapshot->packSize)->toBe(25);
+});
+
+it('leaves packSize null for a product not sold in packs', function () {
+    $product = createTestProduct(['pack_size' => null]);
+
+    $snapshot = (new PricingService)->resolveContractPrice($product->sku, 'AUD');
+
+    expect($snapshot->packSize)->toBeNull();
+});
+
+it('resolves imagePath to a public disk URL when the product has an image', function () {
+    $product = createTestProduct(['image_path' => 'products/dressing.jpg']);
+
+    $snapshot = (new PricingService)->resolveContractPrice($product->sku, 'AUD');
+
+    expect($snapshot->imagePath)->toEndWith('/storage/products/dressing.jpg');
+});
+
+it('leaves imagePath null when the product has no image', function () {
+    $product = createTestProduct(['image_path' => null]);
+
+    $snapshot = (new PricingService)->resolveContractPrice($product->sku, 'AUD');
+
+    expect($snapshot->imagePath)->toBeNull();
+});
+
 it('throws when the SKU does not exist', function () {
     (new PricingService)->resolveContractPrice('DOES-NOT-EXIST', 'AUD');
 })->throws(ProductNotFoundException::class);

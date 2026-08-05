@@ -23,7 +23,8 @@ final readonly class ProductSummary
         public UnspscCode $unspscCode,
         public Money $listPrice,
         public string $unitOfMeasure,
-        public int $packSize,
+        /** Null means not sold in packs, see Product::$pack_size. */
+        public ?int $packSize,
         public int $leadTimeDays,
         public ?string $imagePath,
     ) {}

@@ -8,7 +8,8 @@ export interface ProductSummary {
     unspscCode: string;
     listPrice: Money;
     unitOfMeasure: string;
-    packSize: number;
+    /** Null means this product is not sold in packs: price is per unit. */
+    packSize: number | null;
     leadTimeDays: number;
     imagePath: string | null;
 }
@@ -21,7 +22,8 @@ export interface ProductDetail {
     categoryName: string | null;
     unspscCode: string;
     unitOfMeasure: string;
-    packSize: number;
+    /** Null means this product is not sold in packs: price is per unit. */
+    packSize: number | null;
     leadTimeDays: number;
     listPrice: Money;
     imagePath: string | null;

@@ -6,6 +6,7 @@ import StorefrontLayout from '@/Layouts/StorefrontLayout.vue';
 import QuantityStepper from '@/Components/QuantityStepper.vue';
 import { useCartStore } from '@/Stores/cart';
 import { formatMoney } from '@/types/money';
+import { hasPack, pricePerLabel, totalPiecesLabel } from '@/utils/packSize';
 
 const cartStore = useCartStore();
 const { summary } = storeToRefs(cartStore);
@@ -50,10 +51,26 @@ function transferToCoupa(): void {
                 <tbody>
                     <tr v-for="line in summary.lines" :key="line.sku" class="border-b border-line last:border-0">
                         <td class="px-4 py-3">
-                            <p class="font-display font-semibold text-ink-900">{{ line.description }}</p>
-                            <p class="font-data text-xs text-ink-500">{{ line.sku }}</p>
+                            <div class="flex items-center gap-3">
+                                <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface-2">
+                                    <img
+                                        v-if="line.imagePath"
+                                        :src="line.imagePath"
+                                        :alt="line.description"
+                                        class="h-full w-full object-contain"
+                                    />
+                                    <span v-else class="font-data text-[10px] text-ink-500">No image</span>
+                                </div>
+                                <div>
+                                    <p class="font-display font-semibold text-ink-900">{{ line.description }}</p>
+                                    <p class="font-data text-xs text-ink-500">{{ line.sku }}</p>
+                                </div>
+                            </div>
                         </td>
-                        <td class="px-4 py-3 font-data">{{ formatMoney(line.unitPrice) }}</td>
+                        <td class="px-4 py-3 font-data">
+                            {{ formatMoney(line.unitPrice) }}
+                            <span v-if="hasPack(line.packSize)" class="block text-xs text-ink-500">{{ pricePerLabel(line.packSize) }}</span>
+                        </td>
                         <td class="px-4 py-3">
                             <QuantityStepper
                                 :model-value="line.quantity"
@@ -61,6 +78,9 @@ function transferToCoupa(): void {
                                 :disabled="cartStore.loading"
                                 @update:model-value="(quantity) => onQuantityChange(line.sku, quantity)"
                             />
+                            <p v-if="hasPack(line.packSize)" class="mt-1 font-data text-xs text-ink-500">
+                                {{ totalPiecesLabel(line.quantity, line.packSize) }}
+                            </p>
                         </td>
                         <td class="px-4 py-3 font-data font-semibold">{{ formatMoney(line.lineTotal) }}</td>
                         <td class="px-4 py-3">

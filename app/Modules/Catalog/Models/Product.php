@@ -23,7 +23,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $category_id
  * @property string $unspsc_code
  * @property string $unit_of_measure
- * @property int $pack_size
+ * @property int|null $pack_size null means this product is not sold in packs: quantity is a plain count of unit_of_measure units, and list_price/contract price is per unit. A real value means quantity counts packs, and price is per pack.
  * @property int $lead_time_days
  * @property string $list_price
  * @property string $currency

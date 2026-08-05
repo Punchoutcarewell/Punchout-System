@@ -69,7 +69,11 @@ final class ProductResource extends Resource
                         ->required()
                         ->maxLength(10)
                         ->helperText('UN/CEFACT code, e.g. EA, BX, CS.'),
-                    TextInput::make('pack_size')->numeric()->default(1)->required(),
+                    TextInput::make('pack_size')
+                        ->numeric()
+                        ->minValue(1)
+                        ->nullable()
+                        ->helperText('Leave empty if this product is not sold in packs. When set, list price and contract price are the price of one pack, not one unit.'),
                     TextInput::make('lead_time_days')->numeric()->default(0)->required(),
                 ]),
             Section::make('Pricing')

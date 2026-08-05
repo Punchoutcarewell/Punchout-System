@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import StorefrontLayout from '@/Layouts/StorefrontLayout.vue';
 import QuantityStepper from '@/Components/QuantityStepper.vue';
 import { useCartStore } from '@/Stores/cart';
 import { formatMoney } from '@/types/money';
+import { hasPack, pricePerLabel, totalPiecesLabel } from '@/utils/packSize';
 import type { Money } from '@/types/money';
 import type { ProductDetail } from '@/types/catalog';
 
@@ -14,9 +15,13 @@ const props = defineProps<{
 }>();
 
 const cartStore = useCartStore();
-const quantity = ref(props.product.packSize > 0 ? props.product.packSize : 1);
+// Always 1: for a packed product this means 1 pack, not 1 piece, see
+// ProductCard.vue's own note on the same default.
+const quantity = ref(1);
 const adding = ref(false);
 const added = ref(false);
+
+const piecesLabel = computed(() => totalPiecesLabel(quantity.value, props.product.packSize));
 
 async function addToCart(): Promise<void> {
     adding.value = true;
@@ -55,7 +60,10 @@ async function addToCart(): Promise<void> {
                     SKU {{ product.sku }} &middot; UNSPSC {{ product.unspscCode }}
                 </p>
 
-                <p class="mt-4 font-data text-3xl font-semibold text-ink-900">{{ formatMoney(contractPrice) }}</p>
+                <p class="mt-4 font-data text-3xl font-semibold text-ink-900">
+                    {{ formatMoney(contractPrice) }}
+                    <span v-if="hasPack(product.packSize)" class="text-base font-normal text-ink-500">{{ pricePerLabel(product.packSize) }}</span>
+                </p>
                 <p
                     v-if="contractPrice.amount !== product.listPrice.amount"
                     class="mt-1 font-data text-sm text-ink-500 line-through"
@@ -69,8 +77,10 @@ async function addToCart(): Promise<void> {
                 <dl class="mt-4 grid grid-cols-2 gap-2 font-data text-sm text-ink-500">
                     <dt>Unit of measure</dt>
                     <dd>{{ product.unitOfMeasure }}</dd>
-                    <dt>Pack size</dt>
-                    <dd>{{ product.packSize }}</dd>
+                    <template v-if="hasPack(product.packSize)">
+                        <dt>Pack size</dt>
+                        <dd>{{ product.packSize }}</dd>
+                    </template>
                     <dt>Lead time</dt>
                     <dd>{{ product.leadTimeDays }} days</dd>
                     <dt v-if="product.manufacturerName">Manufacturer</dt>
@@ -91,6 +101,7 @@ async function addToCart(): Promise<void> {
                     </button>
                     <span v-if="added" class="font-data text-sm text-ok">Added</span>
                 </div>
+                <p v-if="piecesLabel" class="mt-2 font-data text-xs text-ink-500">{{ piecesLabel }}</p>
             </div>
         </div>
     </StorefrontLayout>

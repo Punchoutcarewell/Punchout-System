@@ -23,7 +23,9 @@ use Throwable;
  * supplier_part_id, supplier_part_auxiliary_id, manufacturer_part_id,
  * manufacturer_name, name, description, long_description, category,
  * unspsc_code, unit_of_measure, pack_size, lead_time_days, list_price,
- * currency, image_path.
+ * currency, image_path. pack_size is optional: leave it blank for a
+ * product not sold in packs, list_price is then the price of one
+ * unit_of_measure unit rather than one pack, see Product::$pack_size.
  *
  * This column layout is this project's own working assumption. It has
  * not been confirmed against a real export from Carewell's catalogue
@@ -92,7 +94,7 @@ final class CatalogImporter
                 'category_id' => $categoryId,
                 'unspsc_code' => $record['unspsc_code'],
                 'unit_of_measure' => $record['unit_of_measure'],
-                'pack_size' => (int) ($record['pack_size'] ?? 1),
+                'pack_size' => ($this->nullableColumn($record, 'pack_size') !== null) ? (int) $record['pack_size'] : null,
                 'lead_time_days' => (int) ($record['lead_time_days'] ?? 0),
                 'list_price' => $record['list_price'],
                 'currency' => strtoupper($record['currency']),

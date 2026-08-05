@@ -16,29 +16,45 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * authoritative product data it goes through
  * Catalog\Contracts\PricingServiceInterface.
  *
- * description, unit_price, and currency are a display cache captured
- * when the line was added or last updated, not the authoritative source
- * at transfer time, see CartSnapshotFactory.
+ * description, image_path, unit_price, currency, pack_size, and
+ * unit_of_measure are a display cache captured when the line was added or
+ * last updated, not the authoritative source at transfer time, see
+ * CartSnapshotFactory. pack_size null means this line is not sold in
+ * packs, quantity is a plain unit count and unit_price is per unit.
  *
  * @property int $id
  * @property int $cart_id
  * @property string $sku
  * @property string $description
+ * @property string|null $image_path
  * @property int $quantity
  * @property string $unit_price
  * @property string $currency
+ * @property int|null $pack_size
+ * @property string|null $unit_of_measure
  */
 final class CartItem extends Model
 {
     protected $table = 'cart_items';
 
-    protected $fillable = ['cart_id', 'sku', 'description', 'quantity', 'unit_price', 'currency'];
+    protected $fillable = [
+        'cart_id',
+        'sku',
+        'description',
+        'image_path',
+        'quantity',
+        'unit_price',
+        'currency',
+        'pack_size',
+        'unit_of_measure',
+    ];
 
     protected function casts(): array
     {
         return [
             'cart_id' => 'integer',
             'quantity' => 'integer',
+            'pack_size' => 'integer',
             // See Catalog\Models\Product::casts() for why this is explicit
             // rather than left uncast.
             'unit_price' => 'decimal:2',

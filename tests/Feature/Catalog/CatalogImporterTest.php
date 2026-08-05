@@ -33,6 +33,42 @@ it('imports valid rows and creates products with their category', function () {
     unlink($path);
 });
 
+it('leaves pack_size null when the column is omitted, rather than defaulting it to 1', function () {
+    $path = writeTestCatalogCsv(
+        "sku,name,unspsc_code,unit_of_measure,list_price,currency\n"
+        ."CW-4021,Foam Wound Dressing,42311505,BX,25.99,AUD\n",
+    );
+
+    (new CatalogImporter)->importFromCsvFile($path);
+    unlink($path);
+
+    expect(Product::query()->where('sku', 'CW-4021')->firstOrFail()->pack_size)->toBeNull();
+});
+
+it('leaves pack_size null when the column is present but empty', function () {
+    $path = writeTestCatalogCsv(
+        "sku,name,unspsc_code,unit_of_measure,pack_size,list_price,currency\n"
+        ."CW-4021,Foam Wound Dressing,42311505,BX,,25.99,AUD\n",
+    );
+
+    (new CatalogImporter)->importFromCsvFile($path);
+    unlink($path);
+
+    expect(Product::query()->where('sku', 'CW-4021')->firstOrFail()->pack_size)->toBeNull();
+});
+
+it('imports a real pack_size when the column has a value', function () {
+    $path = writeTestCatalogCsv(
+        "sku,name,unspsc_code,unit_of_measure,pack_size,list_price,currency\n"
+        ."CW-4021,Foam Wound Dressing,42311505,BX,10,25.99,AUD\n",
+    );
+
+    (new CatalogImporter)->importFromCsvFile($path);
+    unlink($path);
+
+    expect(Product::query()->where('sku', 'CW-4021')->firstOrFail()->pack_size)->toBe(10);
+});
+
 it('updates an existing product on a second import rather than duplicating it', function () {
     $csv = "sku,name,unspsc_code,unit_of_measure,list_price,currency\n"
         ."CW-4021,Foam Wound Dressing,42311505,BX,25.99,AUD\n";
