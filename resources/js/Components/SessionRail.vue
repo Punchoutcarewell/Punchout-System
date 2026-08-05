@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, toRef } from 'vue';
+import { computed, toRef, watch } from 'vue';
+import { router } from '@inertiajs/vue3';
 import { useSessionCountdown } from '@/Composables/useSessionCountdown';
 import type { PunchoutSessionRail } from '@/types/punchout';
 
@@ -8,7 +9,13 @@ const props = defineProps<{
 }>();
 
 const expiresAt = computed(() => props.session.expiresAt);
-const { label, isExpiringSoon } = useSessionCountdown(toRef(expiresAt));
+const { label, isExpiringSoon, isExpired } = useSessionCountdown(toRef(expiresAt));
+
+watch(isExpired, (expired) => {
+    if (expired) {
+        router.visit('/storefront/session-expired');
+    }
+});
 </script>
 
 <template>
