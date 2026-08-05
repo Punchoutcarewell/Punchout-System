@@ -55,6 +55,8 @@ php artisan make:filament-user
 
 Then sign in at `/admin`. Every `User` row is an admin by definition, there is no separate buyer account system anywhere in this application, punchout buyers only ever carry a session token, never a login.
 
+Production and staging need the standard Laravel scheduler cron entry (`* * * * * php artisan schedule:run`), it drives `punchout_logs` pruning (see `routes/console.php`, `PUNCHOUT_LOG_RETENTION_DAYS`). Nothing runs it in local development, an unpruned local sqlite database is not a concern.
+
 ## Testing and quality gates
 
 ```bash

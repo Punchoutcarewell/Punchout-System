@@ -6,6 +6,8 @@ namespace App\Modules\Punchout\Models;
 
 use App\Modules\Punchout\Enums\PunchoutMessageDirection;
 use App\Modules\Punchout\Enums\PunchoutMessageType;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -15,6 +17,10 @@ use Illuminate\Support\Carbon;
  * before parsing is attempted, so a parser bug can never lose the raw
  * evidence of what Coupa actually sent. The shared secret is redacted
  * before the row is written, never after.
+ *
+ * MassPrunable: this table is written to on every inbound/outbound cXML
+ * message with no cap of its own, model:prune (scheduled daily, see
+ * routes/console.php) deletes rows older than config('punchout.log_retention_days').
  *
  * @property int $id
  * @property int|null $session_id
@@ -27,6 +33,8 @@ use Illuminate\Support\Carbon;
  */
 final class PunchoutLog extends Model
 {
+    use MassPrunable;
+
     public $timestamps = false;
 
     protected $table = 'punchout_logs';
@@ -57,5 +65,15 @@ final class PunchoutLog extends Model
     public function session(): BelongsTo
     {
         return $this->belongsTo(PunchoutSession::class, 'session_id');
+    }
+
+    /**
+     * @return Builder<self>
+     */
+    public function prunable(): Builder
+    {
+        $retentionDays = (int) config('punchout.log_retention_days', 90);
+
+        return self::query()->where('created_at', '<=', now()->subDays($retentionDays));
     }
 }

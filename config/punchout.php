@@ -50,4 +50,21 @@ return [
 
     'coupa_frame_ancestors' => array_filter(explode(' ', (string) env('PUNCHOUT_COUPA_FRAME_ANCESTORS', ''))),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Log retention
+    |--------------------------------------------------------------------------
+    |
+    | punchout_logs holds the raw cXML payload of every setup, order, and
+    | response message, one row per direction per request, with no cap.
+    | PunchoutLog::prunable() (run daily by model:prune, see
+    | routes/console.php) removes rows older than this many days. There is
+    | no compliance requirement driving this number yet, it is a
+    | reasonable default until GPCS or Carewell specifies a real retention
+    | policy for cXML audit logs.
+    |
+    */
+
+    'log_retention_days' => env('PUNCHOUT_LOG_RETENTION_DAYS', 90),
+
 ];
