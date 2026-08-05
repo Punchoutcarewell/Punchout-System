@@ -30,28 +30,48 @@ function submitSearch(): void {
 
 <template>
     <StorefrontLayout>
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-[220px_1fr]">
-            <aside>
+        <div class="mb-8 text-center sm:text-left">
+            <h1 class="font-display text-3xl font-extrabold uppercase tracking-tight text-ink-900 sm:text-4xl">
+                Product Catalogue
+            </h1>
+            <p class="mt-2 text-sm text-ink-500">Browse the Carewell Group contract catalogue and add items to your cart.</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-[240px_1fr]">
+            <aside class="rounded-2xl border border-line bg-surface p-4">
+                <p class="mb-2 font-data text-[11px] font-semibold uppercase tracking-wide text-ink-500">Categories</p>
                 <CategoryTree :categories="categories" :active-category-id="categoryId" />
             </aside>
 
             <div>
                 <form class="mb-6 flex gap-2" @submit.prevent="submitSearch">
-                    <input
-                        v-model="searchTerm"
-                        type="search"
-                        placeholder="Search products by name or SKU"
-                        class="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
-                    />
+                    <div class="relative w-full">
+                        <svg
+                            class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle cx="9" cy="9" r="6" />
+                            <path d="m17 17-4-4" stroke-linecap="round" />
+                        </svg>
+                        <input
+                            v-model="searchTerm"
+                            type="search"
+                            placeholder="Search products by name or SKU"
+                            class="w-full rounded-full border border-line bg-surface py-2.5 pl-10 pr-4 text-sm focus:border-brand-600 focus:outline-none"
+                        />
+                    </div>
                     <button
                         type="submit"
-                        class="rounded-md bg-ink-900 px-4 py-2 font-display text-sm font-semibold text-white"
+                        class="shrink-0 rounded-full bg-ink-900 px-5 py-2.5 font-display text-sm font-semibold text-white transition hover:bg-black"
                     >
                         Search
                     </button>
                 </form>
 
-                <div v-if="products.data.length === 0" class="rounded-lg border border-line bg-surface p-8 text-center">
+                <div v-if="products.data.length === 0" class="rounded-2xl border border-line bg-surface p-8 text-center">
                     <p class="font-display text-lg font-semibold text-ink-900">
                         No results<template v-if="query"> for "{{ query }}"</template>
                     </p>
@@ -67,14 +87,14 @@ function submitSearch(): void {
                     <ProductCard v-for="product in products.data" :key="product.id" :product="product" />
                 </div>
 
-                <nav v-if="products.last_page > 1" class="mt-6 flex flex-wrap gap-2">
+                <nav v-if="products.last_page > 1" class="mt-8 flex flex-wrap justify-center gap-2">
                     <Link
                         v-for="link in products.links"
                         :key="link.label"
                         :href="link.url ?? '#'"
                         :class="[
-                            'rounded-md px-3 py-1.5 font-data text-sm',
-                            link.active ? 'bg-brand-600 text-white' : 'bg-surface text-ink-700',
+                            'rounded-full px-3.5 py-1.5 font-data text-sm transition',
+                            link.active ? 'bg-brand-600 text-white' : 'bg-surface text-ink-700 hover:bg-surface-2',
                             !link.url ? 'pointer-events-none opacity-40' : '',
                         ]"
                         preserve-state

@@ -30,26 +30,26 @@ async function addToCart(): Promise<void> {
 </script>
 
 <template>
-    <div class="flex flex-col rounded-lg border border-line bg-surface p-4">
+    <div class="group flex flex-col rounded-2xl bg-surface-2 p-4 transition hover:shadow-md">
         <Link :href="`/storefront/products/${product.sku}`" class="block">
-            <div class="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-md bg-surface-2">
+            <div class="mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-surface">
                 <img
                     v-if="product.imagePath"
                     :src="product.imagePath"
                     :alt="product.name"
-                    class="h-full w-full object-contain"
+                    class="h-full w-full object-contain p-3 transition duration-300 group-hover:scale-105"
                 />
                 <span v-else class="font-data text-xs text-ink-500">No image</span>
             </div>
-            <span v-if="product.categoryName" class="font-data text-xs uppercase tracking-wide text-ink-500">
+            <span v-if="product.categoryName" class="font-data text-[11px] font-semibold uppercase tracking-wide text-brand-600">
                 {{ product.categoryName }}
             </span>
-            <h3 class="font-display text-sm font-semibold text-ink-900">{{ product.name }}</h3>
+            <h3 class="font-display text-sm font-bold text-ink-900">{{ product.name }}</h3>
         </Link>
         <p class="mt-1 font-data text-xs text-ink-500">
             {{ product.sku }} &middot; {{ packQuantityLabel(product.unitOfMeasure, product.packSize) }}
         </p>
-        <p class="mt-2 font-data text-lg font-semibold text-ink-900">
+        <p class="mt-2 font-data text-lg font-bold text-ink-900">
             {{ formatMoney(product.listPrice) }}
             <span v-if="hasPack(product.packSize)" class="text-xs font-normal text-ink-500">{{ pricePerLabel(product.packSize) }}</span>
         </p>
@@ -57,7 +57,7 @@ async function addToCart(): Promise<void> {
             <QuantityStepper v-model="quantity" :min="1" />
             <button
                 type="button"
-                class="flex-1 rounded-md bg-brand-600 px-3 py-1.5 font-display text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+                class="flex-1 rounded-full bg-brand-600 px-3 py-2 font-display text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
                 :disabled="adding"
                 @click="addToCart"
             >

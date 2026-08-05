@@ -7,9 +7,10 @@
 @source '../**/*.ts';
 
 /*
- * Design tokens from the storefront design spec: orange as a signal
- * colour marking actions, session state, and wayfinding, everything
- * structural stays a cool near-navy. Tailwind v4 turns every --color-*
+ * Design tokens from the storefront design spec: #0158E6 blue as the one
+ * signal colour marking actions, session state, and wayfinding, everything
+ * structural stays a neutral near-black/grey so the accent reads clearly
+ * against a clean, minimal surface. Tailwind v4 turns every --color-*
  * token below into matching bg-/text-/border- utilities automatically.
  */
 @theme {
@@ -17,19 +18,19 @@
     --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-    --color-brand-050: #fff6ef;
-    --color-brand-100: #ffe8d6;
-    --color-brand-500: #fb8b24;
-    --color-brand-600: #e85d04;
-    --color-brand-700: #c24a00;
+    --color-brand-050: #eff5ff;
+    --color-brand-100: #dbe8fe;
+    --color-brand-500: #3373ef;
+    --color-brand-600: #0158e6;
+    --color-brand-700: #0144b3;
 
-    --color-ink-500: #64778c;
-    --color-ink-700: #33465c;
-    --color-ink-900: #14202e;
+    --color-ink-500: #6b7280;
+    --color-ink-700: #374151;
+    --color-ink-900: #111827;
 
-    --color-line: #e3e8ef;
+    --color-line: #e5e7eb;
     --color-surface: #ffffff;
-    --color-surface-2: #f7f9fb;
+    --color-surface-2: #f7f8fa;
 
     --color-ok: #0e7c5a;
     --color-warn: #b45309;

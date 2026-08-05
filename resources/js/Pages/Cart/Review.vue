@@ -28,36 +28,36 @@ function transferToCoupa(): void {
 
 <template>
     <StorefrontLayout :show-cart-bar="false">
-        <h1 class="font-display text-2xl font-bold text-ink-900">Your cart</h1>
+        <h1 class="font-display text-3xl font-extrabold uppercase tracking-tight text-ink-900">Your Cart</h1>
 
-        <div v-if="summary.lines.length === 0" class="mt-6 rounded-lg border border-line bg-surface p-8 text-center">
+        <div v-if="summary.lines.length === 0" class="mt-6 rounded-2xl border border-line bg-surface p-8 text-center">
             <p class="font-display text-lg font-semibold text-ink-900">Nothing in the cart yet</p>
             <Link href="/storefront" class="mt-3 inline-block font-display text-sm font-semibold text-brand-600">
                 Browse the catalogue
             </Link>
         </div>
 
-        <div v-else class="mt-6 overflow-hidden rounded-lg border border-line bg-surface">
+        <div v-else class="mt-6 overflow-hidden rounded-2xl border border-line bg-surface">
             <table class="w-full text-left text-sm">
                 <thead class="border-b border-line bg-surface-2 font-display text-xs uppercase tracking-wide text-ink-500">
                     <tr>
-                        <th class="px-4 py-2">Item</th>
-                        <th class="px-4 py-2">Unit price</th>
-                        <th class="px-4 py-2">Quantity</th>
-                        <th class="px-4 py-2">Line total</th>
-                        <th class="px-4 py-2"></th>
+                        <th class="px-4 py-3">Item</th>
+                        <th class="px-4 py-3">Unit price</th>
+                        <th class="px-4 py-3">Quantity</th>
+                        <th class="px-4 py-3">Line total</th>
+                        <th class="px-4 py-3"></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="line in summary.lines" :key="line.sku" class="border-b border-line last:border-0">
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
-                                <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface-2">
+                                <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-2">
                                     <img
                                         v-if="line.imagePath"
                                         :src="line.imagePath"
                                         :alt="line.description"
-                                        class="h-full w-full object-contain"
+                                        class="h-full w-full object-contain p-1.5"
                                     />
                                     <span v-else class="font-data text-[10px] text-ink-500">No image</span>
                                 </div>
@@ -82,11 +82,11 @@ function transferToCoupa(): void {
                                 {{ totalPiecesLabel(line.quantity, line.packSize) }}
                             </p>
                         </td>
-                        <td class="px-4 py-3 font-data font-semibold">{{ formatMoney(line.lineTotal) }}</td>
+                        <td class="px-4 py-3 font-data font-semibold text-ink-900">{{ formatMoney(line.lineTotal) }}</td>
                         <td class="px-4 py-3">
                             <button
                                 type="button"
-                                class="font-data text-xs text-warn"
+                                class="font-data text-xs text-warn transition hover:opacity-70"
                                 :disabled="cartStore.loading"
                                 @click="removeLine(line.sku)"
                             >
@@ -99,14 +99,14 @@ function transferToCoupa(): void {
 
             <div class="flex items-center justify-between border-t border-line bg-surface-2 px-4 py-4">
                 <span class="font-data text-sm text-ink-500">{{ summary.itemCount }} items</span>
-                <span class="font-data text-xl font-semibold text-ink-900">{{ formatMoney(summary.total) }}</span>
+                <span class="font-data text-xl font-bold text-ink-900">{{ formatMoney(summary.total) }}</span>
             </div>
         </div>
 
         <button
             v-if="summary.lines.length > 0"
             type="button"
-            class="mt-6 w-full rounded-md bg-brand-600 px-5 py-3 font-display text-base font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+            class="mt-6 w-full rounded-full bg-brand-600 px-5 py-3.5 font-display text-base font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
             :disabled="transferring"
             @click="transferToCoupa"
         >

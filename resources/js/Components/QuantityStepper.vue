@@ -32,18 +32,18 @@ function onInput(event: Event): void {
 </script>
 
 <template>
-    <div class="inline-flex items-center rounded-md border border-line">
+    <div class="inline-flex items-center rounded-full border border-line bg-surface p-1">
         <button
             type="button"
-            class="px-3 py-1.5 text-ink-700 transition hover:bg-surface-2 disabled:opacity-40"
+            class="flex h-7 w-7 items-center justify-center rounded-full text-ink-700 transition hover:bg-surface-2 disabled:opacity-30"
             :disabled="disabled || modelValue <= (min ?? 1)"
             aria-label="Decrease quantity"
             @click="decrement"
         >
-            -
+            &minus;
         </button>
         <input
-            class="w-12 border-x border-line bg-transparent text-center font-data text-sm"
+            class="w-10 bg-transparent text-center font-data text-sm text-ink-900"
             type="number"
             :min="min ?? 1"
             :value="modelValue"
@@ -52,7 +52,7 @@ function onInput(event: Event): void {
         />
         <button
             type="button"
-            class="px-3 py-1.5 text-ink-700 transition hover:bg-surface-2 disabled:opacity-40"
+            class="flex h-7 w-7 items-center justify-center rounded-full text-ink-700 transition hover:bg-surface-2 disabled:opacity-30"
             :disabled="disabled"
             aria-label="Increase quantity"
             @click="increment"

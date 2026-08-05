@@ -39,21 +39,21 @@ function categoryHref(categoryId: number): string {
 
 <template>
     <nav aria-label="Categories">
-        <ul class="space-y-1">
+        <ul class="space-y-0.5">
             <li v-for="node in tree" :key="node.id">
                 <Link
                     :href="categoryHref(node.id)"
-                    class="block rounded-md px-2 py-1 font-display text-sm transition"
-                    :class="activeCategoryId === node.id ? 'bg-brand-100 text-brand-700' : 'text-ink-700 hover:bg-surface-2'"
+                    class="block rounded-lg px-3 py-1.5 font-display text-sm font-medium transition"
+                    :class="activeCategoryId === node.id ? 'bg-brand-050 text-brand-700' : 'text-ink-700 hover:bg-surface-2'"
                 >
                     {{ node.name }}
                 </Link>
-                <ul v-if="node.children.length" class="ml-3 mt-1 space-y-1 border-l border-line pl-3">
+                <ul v-if="node.children.length" class="ml-3 mt-1 space-y-0.5 border-l border-line pl-3">
                     <li v-for="child in node.children" :key="child.id">
                         <Link
                             :href="categoryHref(child.id)"
-                            class="block rounded-md px-2 py-1 text-sm transition"
-                            :class="activeCategoryId === child.id ? 'bg-brand-100 text-brand-700' : 'text-ink-500 hover:bg-surface-2'"
+                            class="block rounded-lg px-3 py-1.5 text-sm transition"
+                            :class="activeCategoryId === child.id ? 'bg-brand-050 text-brand-700' : 'text-ink-500 hover:bg-surface-2'"
                         >
                             {{ child.name }}
                         </Link>

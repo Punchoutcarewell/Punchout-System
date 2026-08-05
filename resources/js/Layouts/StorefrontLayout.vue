@@ -29,16 +29,18 @@ watch(
 
 <template>
     <div class="flex min-h-screen flex-col bg-brand-050">
-        <header class="border-b border-line bg-surface px-4 py-3">
+        <header class="border-b border-line bg-surface/90 px-4 py-4 backdrop-blur">
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
                 <img v-if="siteLogoUrl" :src="siteLogoUrl" alt="Carewell Group" class="h-8 w-auto" />
-                <span v-else class="font-display text-lg font-bold text-ink-900">Carewell Group</span>
+                <span v-else class="font-display text-lg font-extrabold uppercase tracking-tight text-ink-900">
+                    Carewell<span class="text-brand-600">.</span>
+                </span>
                 <SessionRail v-if="session" :session="session" />
             </div>
         </header>
 
         <div v-if="cartError" class="mx-auto mt-4 w-full max-w-6xl px-4">
-            <p class="flex items-center justify-between rounded-md border border-warn bg-warn/10 px-4 py-3 text-sm text-warn">
+            <p class="flex items-center justify-between rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-warn">
                 <span>{{ cartError }}</span>
                 <button type="button" class="font-display font-semibold" @click="cartStore.dismissError()">
                     Dismiss
@@ -46,7 +48,7 @@ watch(
             </p>
         </div>
 
-        <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+        <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
             <slot />
         </main>
 
