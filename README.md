@@ -80,8 +80,8 @@ php artisan catalog:validate             # fail if any active product is missing
 
 ## A note on open items
 
-- `OrderRequestParser` (the inbound purchase order) is built against the standard cXML `OrderRequest` structure, no sample PO payload exists in any of the source documents this project was built from, so this has not been validated against a real Coupa-issued specimen yet.
-- `OrderRequestController` does not currently validate a shared secret on the inbound PO, since it is not confirmed whether Coupa sends one on that message type, and the PO transmission channel itself (CSP, email, or cXML) is still unconfirmed with GPCS.
+- `OrderRequestParser` (the inbound purchase order) is built against the standard cXML `OrderRequest` structure, no sample PO payload exists in any of the source documents this project was built from, so this has not been validated against a real Coupa-issued specimen yet. The PO transmission channel itself (CSP, email, or cXML) is still unconfirmed with GPCS.
+- `ContractPrice` (`config/cart.php`'s `default_currency` sibling assumption) is scoped only to a product and a date range, no buyer or customer column, assuming one contract catalogue serves every buyer. Whether Carewell's Amazon contract actually varies pricing by buyer, business unit, or country is an open question for GPCS.
 - `ORDERS_NOTIFICATION_EMAIL` (`config/orders.php`) defaults to a placeholder address, set it in `.env` before this matters in any real environment.
 
 All three are flagged directly in the relevant code's docblocks and should be resolved once GPCS answers those questions.

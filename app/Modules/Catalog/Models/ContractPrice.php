@@ -9,6 +9,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
+ * A negotiated price for a product over a date range, e.g. "$25.99 AUD
+ * from 2026-01-01".
+ *
+ * Scoped only to product_id and a date range, there is no buyer or
+ * customer column. This assumes a single contract catalogue serving every
+ * Amazon Business buyer that reaches this storefront, mirroring
+ * config/cart.php's single-currency assumption. Whether Carewell's
+ * contract with Amazon actually varies pricing by buyer, business unit,
+ * or country is an open question for GPCS; if it does, this table needs a
+ * buyer-scoping column and activeContractPrice() needs to filter on it.
+ * Until then this is the deliberate working assumption, not an oversight.
+ *
  * @property int $id
  * @property int $product_id
  * @property string $contract_reference
