@@ -25,7 +25,10 @@ interface SessionManagerInterface
     /**
      * Look up a session by its token. Returns null if the token is
      * unknown, expired, or already transferred, expiry is enforced here,
-     * not left to the caller to check.
+     * not left to the caller to check. A session in the Transferring
+     * state (see PunchoutSessionStatus) still resolves within its grace
+     * window, so a reload or a retry of the transfer page is not treated
+     * as a dead session.
      */
     public function resolve(string $token): ?PunchoutSession;
 
@@ -40,6 +43,15 @@ interface SessionManagerInterface
      * The session bound to the current request, if any.
      */
     public function current(): ?PunchoutSession;
+
+    /**
+     * The buyer has clicked "Transfer cart to Coupa" and the outbound
+     * PunchOutOrderMessage has been built and logged; the browser is
+     * about to auto-submit it to Coupa. Not yet Transferred: this app has
+     * no way to know that post actually landed, so the session stays
+     * resolvable for a grace window in case it needs retrying.
+     */
+    public function markTransferring(PunchoutSession $session): void;
 
     public function markTransferred(PunchoutSession $session): void;
 

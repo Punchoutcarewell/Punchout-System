@@ -20,6 +20,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Transfer grace window
+    |--------------------------------------------------------------------------
+    |
+    | How long a session stays resolvable after the buyer clicks "Transfer
+    | cart to Coupa" but before this app has any confirmation the browser's
+    | form post to Coupa actually landed, there is no such confirmation in
+    | the cXML PunchOut protocol. Within this window a reload or a retry
+    | re-renders the same already-built PunchOutOrderMessage rather than
+    | building and sending a second, distinct one. See
+    | PunchoutSessionStatus::Transferring.
+    |
+    */
+
+    'transfer_grace_minutes' => env('PUNCHOUT_TRANSFER_GRACE_MINUTES', 10),
+
+    /*
+    |--------------------------------------------------------------------------
     | Coupa frame-ancestors domains
     |--------------------------------------------------------------------------
     |

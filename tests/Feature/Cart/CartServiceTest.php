@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 use App\Modules\Cart\Exceptions\CartItemNotFoundException;
 use App\Modules\Cart\Exceptions\CartNotFoundException;
+use App\Modules\Cart\Models\CartItem;
 use App\Modules\Cart\Services\CartService;
 use App\Modules\Catalog\Exceptions\ProductNotFoundException;
 use App\Shared\Exceptions\DomainValidationException;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 
 it('adds a new item and creates the cart on first add', function () {
     $sessionId = issueTestPunchoutSession()->id;
@@ -31,6 +34,51 @@ it('increments quantity when the same SKU is added twice', function () {
 
     expect($summary->lines)->toHaveCount(1)
         ->and($summary->lines[0]->quantity)->toBe(5);
+});
+
+it('increments the existing row atomically (UPDATE quantity = quantity + ?), not a PHP read-modify-write', function () {
+    $sessionId = issueTestPunchoutSession()->id;
+    $product = createTestProduct(['sku' => 'CW-4021', 'list_price' => '10.00', 'currency' => 'AUD']);
+    $service = app(CartService::class);
+
+    $service->addItem($sessionId, $product->sku, 2);
+
+    $queries = [];
+    DB::listen(function ($query) use (&$queries): void {
+        $queries[] = $query->sql;
+    });
+
+    $service->addItem($sessionId, $product->sku, 3);
+
+    $updateQueries = array_filter($queries, fn (string $sql): bool => str_starts_with($sql, 'update') && str_contains($sql, 'cart_items'));
+
+    expect($updateQueries)->not->toBeEmpty();
+    foreach ($updateQueries as $sql) {
+        expect($sql)->toContain('"quantity" = "quantity" +');
+    }
+});
+
+it('recovers by incrementing when create() loses a race against a concurrently inserted row for the same cart and SKU', function () {
+    $sessionId = issueTestPunchoutSession()->id;
+    $product = createTestProduct(['sku' => 'CW-4021', 'list_price' => '10.00', 'currency' => 'AUD']);
+
+    // Confirms the exception this fix actually catches is what a real
+    // unique-constraint violation on cart_items(cart_id, sku) throws on
+    // this driver, not assumed.
+    app(CartService::class)->addItem($sessionId, $product->sku, 1);
+    $cart = app(CartService::class)->summary($sessionId);
+    $cartId = CartItem::query()->where('sku', $product->sku)->firstOrFail()->cart_id;
+
+    expect(fn () => CartItem::query()->create([
+        'cart_id' => $cartId,
+        'sku' => $product->sku,
+        'description' => 'duplicate',
+        'unit_price' => '10.00',
+        'currency' => 'AUD',
+        'quantity' => 1,
+    ]))->toThrow(UniqueConstraintViolationException::class);
+
+    expect($cart->lines[0]->quantity)->toBe(1);
 });
 
 it('throws for an unknown SKU', function () {

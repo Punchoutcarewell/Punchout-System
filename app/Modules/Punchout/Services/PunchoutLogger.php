@@ -67,6 +67,16 @@ final class PunchoutLogger implements PunchoutLoggerInterface
         ]);
     }
 
+    public function findLatestOutbound(PunchoutSession $session, PunchoutMessageType $type): ?PunchoutLog
+    {
+        return PunchoutLog::query()
+            ->where('session_id', $session->id)
+            ->where('direction', PunchoutMessageDirection::Outbound)
+            ->where('message_type', $type)
+            ->latest('id')
+            ->first();
+    }
+
     private function write(
         PunchoutMessageDirection $direction,
         PunchoutMessageType $type,

@@ -7,13 +7,16 @@ namespace App\Modules\Storefront\Http\Controllers;
 use App\Modules\Cart\Contracts\CartServiceInterface;
 use App\Modules\Cart\Exceptions\CartNotFoundException;
 use App\Modules\Cart\Exceptions\EmptyCartException;
+use App\Modules\Catalog\Exceptions\ProductNotFoundException;
 use App\Modules\Punchout\Contracts\PunchoutLoggerInterface;
 use App\Modules\Punchout\Contracts\PunchoutProtocolInterface;
 use App\Modules\Punchout\Contracts\SessionManagerInterface;
 use App\Modules\Punchout\Data\OrderMessageData;
 use App\Modules\Punchout\Enums\PunchoutMessageType;
+use App\Modules\Punchout\Enums\PunchoutSessionStatus;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
 use App\Modules\Punchout\Models\PunchoutSession;
+use App\Shared\Exceptions\DomainValidationException;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -38,13 +41,35 @@ final class TransferPageController
     {
         $session = $this->requireSession();
 
+        // A reload or a retry within the grace window (see
+        // PunchoutSessionStatus::Transferring): re-render the exact
+        // message already built and logged rather than building and
+        // sending Coupa a second, distinct PunchOutOrderMessage for the
+        // same cart.
+        if ($session->status === PunchoutSessionStatus::Transferring) {
+            return $this->resumeExistingTransfer($session);
+        }
+
         try {
             $cartSnapshot = $this->cart->buildTransferSnapshot($session->id);
         } catch (CartNotFoundException|EmptyCartException) {
-            return $this->failed(
-                $session,
-                'Your cart is empty. Add at least one item before transferring back to Coupa.',
-            );
+            return $this->failed('Your cart is empty. Add at least one item before transferring back to Coupa.');
+        } catch (ProductNotFoundException|DomainValidationException $exception) {
+            // CartSnapshotFactory re-resolves pricing fresh per line at
+            // transfer time (see its own docblock for why), which means a
+            // product deactivated or repriced into a different currency
+            // while the buyer had it in an open cart surfaces here, not
+            // as a silent stale price. Named by SKU so the buyer has a
+            // concrete next step instead of a generic failure.
+            $sku = $exception->context()['sku'] ?? 'one of your items';
+
+            Log::channel('punchout')->error('Cart transfer failed: a cart line could not be priced.', [
+                'session_id' => $session->id,
+                'sku' => $sku,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return $this->failed("We could not confirm current pricing for {$sku}. Please remove it from your cart and try again, or contact support if this continues.");
         }
 
         try {
@@ -55,10 +80,7 @@ final class TransferPageController
                 'error' => $exception->getMessage(),
             ]);
 
-            return $this->failed(
-                $session,
-                'This punchout session could not be authenticated for transfer. Please contact support.',
-            );
+            return $this->failed('This punchout session could not be authenticated for transfer. Please contact support.');
         }
 
         $orderMessageXml = $this->protocol->buildOrderMessage(new OrderMessageData(
@@ -75,7 +97,7 @@ final class TransferPageController
 
         $this->logger->logOutbound(PunchoutMessageType::OrderMessage, $orderMessageXml, $session);
 
-        $this->sessions->markTransferred($session);
+        $this->sessions->markTransferring($session);
 
         return Inertia::render('Punchout/TransferInProgress', [
             'browserFormPostUrl' => $session->browser_form_post_url,
@@ -83,7 +105,29 @@ final class TransferPageController
         ]);
     }
 
-    private function failed(PunchoutSession $session, string $reason): Response
+    private function resumeExistingTransfer(PunchoutSession $session): Response
+    {
+        $log = $this->logger->findLatestOutbound($session, PunchoutMessageType::OrderMessage);
+
+        if ($log === null) {
+            // Should be unreachable: Transferring is only ever entered
+            // immediately after logOutbound() succeeds for this exact
+            // message type. Fail safely rather than silently rebuilding a
+            // second message if it somehow happens anyway.
+            Log::channel('punchout')->error('Session is Transferring but no outbound PunchOutOrderMessage log was found to resume.', [
+                'session_id' => $session->id,
+            ]);
+
+            return $this->failed('Something went wrong resuming your transfer. Please contact support.');
+        }
+
+        return Inertia::render('Punchout/TransferInProgress', [
+            'browserFormPostUrl' => $session->browser_form_post_url,
+            'encodedCxml' => $log->raw_payload,
+        ]);
+    }
+
+    private function failed(string $reason): Response
     {
         return Inertia::render('Punchout/TransferFailed', [
             'reason' => $reason,

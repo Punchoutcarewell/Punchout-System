@@ -54,6 +54,8 @@ interface CartServiceInterface
      *
      * @throws CartNotFoundException
      * @throws EmptyCartException
+     * @throws ProductNotFoundException a line's product was deactivated after being added to the cart
+     * @throws DomainValidationException a line's product is now priced in a different currency
      */
     public function buildTransferSnapshot(int $sessionId): CartSnapshot;
 }

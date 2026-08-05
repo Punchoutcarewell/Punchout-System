@@ -52,6 +52,20 @@ final class SessionManager implements SessionManagerInterface
             return null;
         }
 
+        if ($session->status === PunchoutSessionStatus::Transferring) {
+            if ($session->isWithinTransferGrace()) {
+                return $session;
+            }
+
+            // The grace window lapsed with no retry: this is as close to
+            // "confirmed" as this app can ever get, since the cXML
+            // PunchOut protocol has no callback for it. See
+            // PunchoutSessionStatus::Transferring.
+            $session->update(['status' => PunchoutSessionStatus::Transferred]);
+
+            return null;
+        }
+
         if ($session->hasExpired()) {
             if ($session->status === PunchoutSessionStatus::Active) {
                 $session->update(['status' => PunchoutSessionStatus::Expired]);
@@ -75,6 +89,12 @@ final class SessionManager implements SessionManagerInterface
     public function current(): ?PunchoutSession
     {
         return $this->boundSession;
+    }
+
+    public function markTransferring(PunchoutSession $session): void
+    {
+        $session->update(['status' => PunchoutSessionStatus::Transferring, 'transferring_at' => Carbon::now()]);
+        $this->boundSession = $session->refresh();
     }
 
     public function markTransferred(PunchoutSession $session): void

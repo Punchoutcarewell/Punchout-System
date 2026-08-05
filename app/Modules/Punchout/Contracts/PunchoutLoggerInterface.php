@@ -39,4 +39,12 @@ interface PunchoutLoggerInterface
     ): PunchoutLog;
 
     public function updateStatus(PunchoutLog $log, ?int $httpStatus, ?string $error = null, ?PunchoutSession $session = null): void;
+
+    /**
+     * The most recent logged message of the given type/direction for a
+     * session. What a retried transfer (see PunchoutSessionStatus::
+     * Transferring) re-renders instead of building and sending a second,
+     * distinct PunchOutOrderMessage for the same cart.
+     */
+    public function findLatestOutbound(PunchoutSession $session, PunchoutMessageType $type): ?PunchoutLog;
 }

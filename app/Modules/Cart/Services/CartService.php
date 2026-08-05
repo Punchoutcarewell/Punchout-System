@@ -15,6 +15,7 @@ use App\Modules\Catalog\Contracts\PricingServiceInterface;
 use App\Modules\Punchout\Data\CartSnapshot;
 use App\Shared\Exceptions\DomainValidationException;
 use App\Shared\ValueObjects\Money;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 final class CartService implements CartServiceInterface
 {
@@ -38,16 +39,29 @@ final class CartService implements CartServiceInterface
         $item = CartItem::query()->where('cart_id', $cart->id)->where('sku', $sku)->first();
 
         if ($item !== null) {
-            $item->update(['quantity' => $item->quantity + $quantity]);
+            // An atomic UPDATE ... SET quantity = quantity + ?, not a
+            // read-modify-write in PHP: two concurrent adds of the same
+            // SKU would otherwise both compute quantity+delta from the
+            // same stale read and one increment would be lost.
+            $item->increment('quantity', $quantity);
         } else {
-            CartItem::query()->create([
-                'cart_id' => $cart->id,
-                'sku' => $priceSnapshot->sku,
-                'description' => $priceSnapshot->description,
-                'unit_price' => $priceSnapshot->contractPrice->toDecimalString(),
-                'currency' => $priceSnapshot->contractPrice->currency(),
-                'quantity' => $quantity,
-            ]);
+            try {
+                CartItem::query()->create([
+                    'cart_id' => $cart->id,
+                    'sku' => $priceSnapshot->sku,
+                    'description' => $priceSnapshot->description,
+                    'unit_price' => $priceSnapshot->contractPrice->toDecimalString(),
+                    'currency' => $priceSnapshot->contractPrice->currency(),
+                    'quantity' => $quantity,
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                // Lost a race against another request adding the same
+                // SKU to the same cart between the check above and this
+                // insert (cart_items has a unique(cart_id, sku) index):
+                // that request's row now exists, increment it instead of
+                // silently dropping this add.
+                CartItem::query()->where('cart_id', $cart->id)->where('sku', $sku)->firstOrFail()->increment('quantity', $quantity);
+            }
         }
 
         return $this->recalculate($cart);

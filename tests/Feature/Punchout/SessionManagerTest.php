@@ -27,3 +27,23 @@ it('throws when no active credential matches the session\'s to_domain and to_ide
 
     app(SessionManager::class)->resolveOutboundIdentity($session);
 })->throws(InvalidCredentialsException::class);
+
+it('still resolves a Transferring session within its grace window', function () {
+    $session = issueTestPunchoutSession();
+    $manager = app(SessionManager::class);
+
+    $manager->markTransferring($session);
+
+    expect($manager->resolve($session->token))->not->toBeNull();
+});
+
+it('does not resolve a Transferring session once its grace window has lapsed, and lazily marks it Transferred', function () {
+    $session = issueTestPunchoutSession();
+    $manager = app(SessionManager::class);
+
+    $manager->markTransferring($session);
+    $session->update(['transferring_at' => now()->subMinutes((int) config('punchout.transfer_grace_minutes', 10) + 1)]);
+
+    expect($manager->resolve($session->token))->toBeNull()
+        ->and($session->fresh()->status->value)->toBe('transferred');
+});

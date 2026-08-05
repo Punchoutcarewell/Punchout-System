@@ -31,6 +31,7 @@ use Illuminate\Support\Carbon;
  * @property PunchoutOperation $operation
  * @property PunchoutSessionStatus $status
  * @property Carbon $expires_at
+ * @property Carbon|null $transferring_at
  */
 final class PunchoutSession extends Model
 {
@@ -51,6 +52,7 @@ final class PunchoutSession extends Model
         'operation',
         'status',
         'expires_at',
+        'transferring_at',
     ];
 
     protected function casts(): array
@@ -59,6 +61,7 @@ final class PunchoutSession extends Model
             'operation' => PunchoutOperation::class,
             'status' => PunchoutSessionStatus::class,
             'expires_at' => 'datetime',
+            'transferring_at' => 'datetime',
         ];
     }
 
@@ -71,5 +74,22 @@ final class PunchoutSession extends Model
     public function isActive(): bool
     {
         return $this->status === PunchoutSessionStatus::Active && ! $this->hasExpired();
+    }
+
+    /**
+     * Whether the buyer is still inside the transfer grace window: the
+     * form post to Coupa may or may not have actually landed, so a reload
+     * or a retry within this window is treated as "still trying", not a
+     * dead session.
+     */
+    public function isWithinTransferGrace(): bool
+    {
+        if ($this->status !== PunchoutSessionStatus::Transferring || $this->transferring_at === null) {
+            return false;
+        }
+
+        $graceMinutes = (int) config('punchout.transfer_grace_minutes', 10);
+
+        return $this->transferring_at->addMinutes($graceMinutes)->isFuture();
     }
 }
