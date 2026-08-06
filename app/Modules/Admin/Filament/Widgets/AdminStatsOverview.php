@@ -36,6 +36,8 @@ final class AdminStatsOverview extends BaseWidget
 
         $activeProducts = Product::query()->where('is_active', true)->count();
 
+        $needsRestockCount = Product::query()->where('stock_quantity', '<', 0)->count();
+
         $activeCredentials = PunchoutCredential::query()->where('is_active', true)->count();
 
         return [
@@ -59,6 +61,12 @@ final class AdminStatsOverview extends BaseWidget
                 ->description('Live in the catalogue')
                 ->icon('heroicon-o-cube')
                 ->color('gray'),
+
+            Stat::make('Needs restock', $needsRestockCount)
+                ->description($needsRestockCount > 0 ? 'Products oversold, more stock needed' : 'No product is oversold')
+                ->icon('heroicon-o-archive-box-x-mark')
+                ->color($needsRestockCount > 0 ? 'danger' : 'success')
+                ->url($needsRestockCount > 0 ? route('filament.admin.resources.products.index') : null),
 
             Stat::make('Active credentials', $activeCredentials)
                 ->description($activeCredentials > 0 ? 'Buyer identities that can authenticate' : 'No credential configured yet')
