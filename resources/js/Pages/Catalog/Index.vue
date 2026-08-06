@@ -59,7 +59,7 @@ function submitSearch(): void {
                         <input
                             v-model="searchTerm"
                             type="search"
-                            placeholder="Search products by name or SKU"
+                            placeholder="Search by name, SKU, or UNSPSC code"
                             class="w-full rounded-full border border-line bg-surface py-2.5 pl-10 pr-4 text-sm focus:border-brand-600 focus:outline-none"
                         />
                     </div>

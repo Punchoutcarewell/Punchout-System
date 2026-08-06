@@ -120,7 +120,8 @@ final class CatalogSearchService implements CatalogSearchInterface
         $builder->where(function (Builder $inner) use ($like): void {
             $inner->whereRaw('name LIKE ? ESCAPE ?', [$like, '\\'])
                 ->orWhereRaw('sku LIKE ? ESCAPE ?', [$like, '\\'])
-                ->orWhereRaw('description LIKE ? ESCAPE ?', [$like, '\\']);
+                ->orWhereRaw('description LIKE ? ESCAPE ?', [$like, '\\'])
+                ->orWhereRaw('unspsc_code LIKE ? ESCAPE ?', [$like, '\\']);
         });
     }
 

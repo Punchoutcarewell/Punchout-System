@@ -55,6 +55,26 @@ it('does not let an underscore in the search query act as a wildcard matching an
         ->and($results->items()[0]->sku)->toBe('CW_1001');
 });
 
+it('finds a product by its full UNSPSC code', function () {
+    createTestProduct(['sku' => 'CW-1001', 'unspsc_code' => '42311505']);
+    createTestProduct(['sku' => 'CW-1002', 'unspsc_code' => '42131601']);
+
+    $results = (new CatalogSearchService)->search('42311505');
+
+    expect($results->total())->toBe(1)
+        ->and($results->items()[0]->sku)->toBe('CW-1001');
+});
+
+it('finds a product by a UNSPSC code substring', function () {
+    createTestProduct(['sku' => 'CW-1001', 'unspsc_code' => '42311505']);
+    createTestProduct(['sku' => 'CW-1002', 'unspsc_code' => '42131601']);
+
+    $results = (new CatalogSearchService)->search('423115');
+
+    expect($results->total())->toBe(1)
+        ->and($results->items()[0]->sku)->toBe('CW-1001');
+});
+
 it('excludes inactive products', function () {
     createTestProduct(['name' => 'Retired Item', 'is_active' => false]);
 
