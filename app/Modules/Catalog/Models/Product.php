@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string $unspsc_code
  * @property string $unit_of_measure
  * @property int|null $pack_size null means this product is not sold in packs: quantity is a plain count of unit_of_measure units, and list_price/contract price is per unit. A real value means quantity counts packs, and price is per pack.
+ * @property int $stock_quantity units on hand. Never gates order receipt: a purchase order that oversells this goes negative rather than being rejected, see InventoryService::deduct(). A negative value is itself the count of extra units Admin needs to bring in.
  * @property int $lead_time_days
  * @property string $list_price
  * @property string $currency
@@ -49,6 +50,7 @@ final class Product extends Model
         'unspsc_code',
         'unit_of_measure',
         'pack_size',
+        'stock_quantity',
         'lead_time_days',
         'list_price',
         'currency',
@@ -62,6 +64,7 @@ final class Product extends Model
             'is_active' => 'boolean',
             'category_id' => 'integer',
             'pack_size' => 'integer',
+            'stock_quantity' => 'integer',
             'lead_time_days' => 'integer',
             // Explicit decimal cast: sqlite's PDO driver returns an
             // uncast decimal column as a PHP float, MySQL/Postgres return
@@ -85,6 +88,20 @@ final class Product extends Model
     public function contractPrices(): HasMany
     {
         return $this->hasMany(ContractPrice::class);
+    }
+
+    public function hasShortfall(): bool
+    {
+        return $this->stock_quantity < 0;
+    }
+
+    /**
+     * How many extra units Admin needs to bring in to bring stock back to
+     * zero. 0 for any product that is not oversold, never negative.
+     */
+    public function shortfallQuantity(): int
+    {
+        return $this->hasShortfall() ? abs($this->stock_quantity) : 0;
     }
 
     /**

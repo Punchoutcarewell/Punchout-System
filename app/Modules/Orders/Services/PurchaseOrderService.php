@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Orders\Services;
 
+use App\Modules\Catalog\Contracts\InventoryServiceInterface;
 use App\Modules\Orders\Contracts\PurchaseOrderServiceInterface;
 use App\Modules\Orders\Data\PurchaseOrderReceipt;
 use App\Modules\Orders\Enums\PurchaseOrderStatus;
@@ -18,7 +19,10 @@ use Illuminate\Support\Facades\DB;
 
 final class PurchaseOrderService implements PurchaseOrderServiceInterface
 {
-    public function __construct(private readonly CxmlSecretRedactor $redactor) {}
+    public function __construct(
+        private readonly CxmlSecretRedactor $redactor,
+        private readonly InventoryServiceInterface $inventory,
+    ) {}
 
     public function receive(OrderRequestData $data, string $rawPayload, ?int $punchoutSessionId = null): PurchaseOrderReceipt
     {
@@ -57,6 +61,15 @@ final class PurchaseOrderService implements PurchaseOrderServiceInterface
                         'unit_of_measure' => $line->unitOfMeasure,
                         'description' => $line->description,
                     ]);
+
+                    // Inline, inside this same transaction, not a third
+                    // dispatch() alongside the two below: unlike a
+                    // notification email or advisory reconciliation flag,
+                    // a stock change is part of what "this PO was
+                    // received" means and must not depend on a queue
+                    // worker running to actually happen. Never blocks or
+                    // throws, see InventoryServiceInterface::deduct().
+                    $this->inventory->deduct($line->supplierPartId, $line->quantity);
                 }
 
                 return $purchaseOrder;

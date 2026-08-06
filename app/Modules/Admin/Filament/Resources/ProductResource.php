@@ -14,12 +14,14 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 final class ProductResource extends Resource
 {
@@ -76,6 +78,17 @@ final class ProductResource extends Resource
                         ->helperText('Leave empty if this product is not sold in packs. When set, list price and contract price are the price of one pack, not one unit.'),
                     TextInput::make('lead_time_days')->numeric()->default(0)->required(),
                 ]),
+            Section::make('Inventory')
+                ->columns(1)
+                ->schema([
+                    TextInput::make('stock_quantity')
+                        ->label('Stock on hand')
+                        ->numeric()
+                        ->integer()
+                        ->default(0)
+                        ->required()
+                        ->helperText('Deducted automatically as purchase orders come in. A negative value means orders have outsold stock, that many extra units still need to be brought in.'),
+                ]),
             Section::make('Pricing')
                 ->columns(2)
                 ->schema([
@@ -108,11 +121,25 @@ final class ProductResource extends Resource
                 TextColumn::make('category.name')->label('Category')->placeholder('None'),
                 TextColumn::make('unspsc_code')->label('UNSPSC')->fontFamily('mono'),
                 TextColumn::make('list_price')->money(fn (Product $record): string => $record->currency),
-                IconColumn::make('is_active')->boolean(),
+                TextColumn::make('stock_quantity')
+                    ->label('Stock')
+                    ->sortable()
+                    ->color(fn (Product $record): string => match (true) {
+                        $record->hasShortfall() => 'danger',
+                        $record->stock_quantity === 0 => 'warning',
+                        default => 'success',
+                    })
+                    ->description(fn (Product $record): ?string => $record->hasShortfall()
+                        ? "{$record->shortfallQuantity()} needed"
+                        : null),
+                ToggleColumn::make('is_active'),
             ])
             ->filters([
                 SelectFilter::make('category_id')->label('Category')->relationship('category', 'name'),
                 TernaryFilter::make('is_active'),
+                Filter::make('needs_restock')
+                    ->label('Needs restock')
+                    ->query(fn (Builder $query): Builder => $query->where('stock_quantity', '<', 0)),
             ])
             ->defaultSort('name');
     }

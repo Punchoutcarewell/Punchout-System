@@ -7,8 +7,10 @@ namespace App\Modules\Catalog;
 use App\Modules\Catalog\Console\Commands\ImportCatalog;
 use App\Modules\Catalog\Console\Commands\ValidateCatalog;
 use App\Modules\Catalog\Contracts\CatalogSearchInterface;
+use App\Modules\Catalog\Contracts\InventoryServiceInterface;
 use App\Modules\Catalog\Contracts\PricingServiceInterface;
 use App\Modules\Catalog\Services\CatalogSearchService;
+use App\Modules\Catalog\Services\InventoryService;
 use App\Modules\Catalog\Services\PricingService;
 use Illuminate\Support\ServiceProvider;
 
@@ -24,6 +26,7 @@ final class CatalogServiceProvider extends ServiceProvider
     {
         $this->app->bind(PricingServiceInterface::class, PricingService::class);
         $this->app->bind(CatalogSearchInterface::class, CatalogSearchService::class);
+        $this->app->bind(InventoryServiceInterface::class, InventoryService::class);
     }
 
     public function boot(): void
