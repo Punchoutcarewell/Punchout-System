@@ -74,4 +74,4 @@ jobs:
           app-name: 'punchout-services'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D9961B26B24145C3B61B4AE950781106 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D9961B26B24145C3B61B4AE950781106 }}  
