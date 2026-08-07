@@ -23,16 +23,21 @@ jobs:
         with:
           php-version: '8.3'
 
-      - name: Check if composer.json exists
-        id: check_files
-        uses: andstor/file-existence-action@v1
+      - name: Composer install (production dependencies only)
+        run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader --no-interaction
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          files: 'composer.json'
+          node-version: '20'
 
-      - name: Run composer install if composer.json exists
-        if: steps.check_files.outputs.files_exists == 'true'
-        run: composer validate --no-check-publish && composer install --prefer-dist --no-progress
+      - name: Install npm dependencies and build frontend assets
+        run: |
+          npm ci
+          npm run build
 
+      - name: Remove files not needed at runtime
+        run: rm -rf node_modules tests .github .git
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
