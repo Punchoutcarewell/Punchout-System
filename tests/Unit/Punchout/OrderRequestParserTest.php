@@ -1,0 +1,130 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Modules\Punchout\Cxml\OrderRequestParser;
+use App\Modules\Punchout\Exceptions\MalformedCxmlException;
+
+/**
+ * No sample OrderRequest payload was provided in Amazon's supplier
+ * questionnaire or the GPCS process guide, PO transmission type (CSP,
+ * email, or cXML) is still an open question for this project. This
+ * fixture follows the standard cXML OrderRequest structure and needs
+ * validation against a real Coupa-issued specimen once that question is
+ * answered, see the docblock on OrderRequestParser itself.
+ */
+function orderRequestFixtureXml(): string
+{
+    return <<<'XML'
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE cXML SYSTEM "http://xml.cxml.org/schemas/cXML/1.2.014/cXML.dtd">
+    <cXML xml:lang="en-US" payloadID="1@coupahost.com" timestamp="2026-08-10T10:00:00-05:00">
+      <Header>
+        <From><Credential domain="DUNS"><Identity>COUPA1</Identity></Credential></From>
+        <To><Credential domain="DUNS"><Identity>079928354</Identity></Credential></To>
+        <Sender><Credential domain="DUNS"><Identity>COUPA1</Identity></Credential></Sender>
+      </Header>
+      <Request deploymentMode="production">
+        <OrderRequest>
+          <OrderRequestHeader orderID="PO-98765" orderDate="2026-08-10T10:00:00-05:00" type="new">
+            <Total><Money currency="AUD">271.88</Money></Total>
+            <Extrinsic name="buyerReference">REQ-4471</Extrinsic>
+          </OrderRequestHeader>
+          <ItemOut lineNumber="1" quantity="2">
+            <ItemID><SupplierPartID>CW-4021</SupplierPartID></ItemID>
+            <ItemDetail>
+              <UnitPrice><Money currency="AUD">25.99</Money></UnitPrice>
+              <Description xml:lang="en-US">Foam Wound Dressing 10cm, Pack of 10</Description>
+              <UnitOfMeasure>BX</UnitOfMeasure>
+            </ItemDetail>
+          </ItemOut>
+          <ItemOut lineNumber="2" quantity="1">
+            <ItemID><SupplierPartID>CW-8890</SupplierPartID></ItemID>
+            <ItemDetail>
+              <UnitPrice><Money currency="AUD">219.90</Money></UnitPrice>
+              <Description xml:lang="en-US">Standard Wheelchair, Folding Frame</Description>
+              <UnitOfMeasure>EA</UnitOfMeasure>
+            </ItemDetail>
+          </ItemOut>
+        </OrderRequest>
+      </Request>
+    </cXML>
+    XML;
+}
+
+it('parses the PO header and every line', function () {
+    $data = (new OrderRequestParser)->parse(orderRequestFixtureXml());
+
+    expect($data->poNumber)->toBe('PO-98765')
+        ->and($data->total->toDecimalString())->toBe('271.88')
+        ->and($data->buyerReference)->toBe('REQ-4471')
+        ->and($data->lines)->toHaveCount(2);
+
+    expect($data->lines[0]->supplierPartId)->toBe('CW-4021')
+        ->and($data->lines[0]->quantity)->toBe(2)
+        ->and($data->lines[0]->unitPrice->toDecimalString())->toBe('25.99')
+        ->and($data->lines[0]->unitOfMeasure)->toBe('BX');
+
+    expect($data->lines[1]->supplierPartId)->toBe('CW-8890')
+        ->and($data->lines[1]->quantity)->toBe(1);
+});
+
+it('rejects an OrderRequest missing the orderID attribute', function () {
+    $xml = str_replace('orderID="PO-98765"', '', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects an OrderRequest with no line items', function () {
+    $xml = preg_replace('/<ItemOut.*?<\/ItemOut>/s', '', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects a non-numeric lineNumber instead of silently coercing it to 0', function () {
+    $xml = str_replace('lineNumber="1"', 'lineNumber="abc"', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects a zero quantity instead of accepting a line no one can fulfil', function () {
+    $xml = str_replace('quantity="2"', 'quantity="0"', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects a negative quantity instead of silently truncating it', function () {
+    $xml = str_replace('quantity="2"', 'quantity="-3"', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects a decimal quantity instead of silently truncating it', function () {
+    $xml = str_replace('quantity="2"', 'quantity="2.5"', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('rejects a missing quantity attribute instead of silently defaulting it to 0', function () {
+    $xml = str_replace(' quantity="2"', '', orderRequestFixtureXml());
+
+    (new OrderRequestParser)->parse($xml);
+})->throws(MalformedCxmlException::class);
+
+it('leaves buyerCookie null when the OrderRequest carries no such Extrinsic, which is the expected default case', function () {
+    $data = (new OrderRequestParser)->parse(orderRequestFixtureXml());
+
+    expect($data->buyerCookie)->toBeNull();
+});
+
+it('captures buyerCookie when the OrderRequest happens to echo it back as an Extrinsic', function () {
+    $xml = str_replace(
+        '<Extrinsic name="buyerReference">REQ-4471</Extrinsic>',
+        '<Extrinsic name="buyerReference">REQ-4471</Extrinsic><Extrinsic name="buyerCookie">99ea3c4c8cf9f6dc905a6b6772daa0d1</Extrinsic>',
+        orderRequestFixtureXml(),
+    );
+
+    $data = (new OrderRequestParser)->parse($xml);
+
+    expect($data->buyerCookie)->toBe('99ea3c4c8cf9f6dc905a6b6772daa0d1');
+});
