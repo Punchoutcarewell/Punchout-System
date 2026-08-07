@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared;
 
+use App\Shared\Console\Commands\MigrateSqliteDataToMysql;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -19,5 +20,9 @@ final class SharedServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/database/migrations');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([MigrateSqliteDataToMysql::class]);
+        }
     }
 }

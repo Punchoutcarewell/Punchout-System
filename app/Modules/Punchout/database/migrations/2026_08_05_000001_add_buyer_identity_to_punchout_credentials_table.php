@@ -21,6 +21,15 @@ use Illuminate\Support\Facades\Schema;
  * supplier questionnaire sample): DUNS/COUPA1. That is a real value, not
  * a placeholder, but it must be revisited once Coupa's actual production
  * From identity is confirmed.
+ *
+ * from_domain/from_identity are capped at 100 chars, shorter than
+ * to_domain/to_identity's uncapped default: on MySQL/utf8mb4 the
+ * 5-column composite unique index below is evaluated in bytes (4 per
+ * char), and environment(20) + to_domain(255) + to_identity(255) +
+ * from_domain(255) + from_identity(255) exceeds InnoDB's 3072-byte key
+ * limit, a real value here is a short DUNS-style identity, never
+ * anywhere near 100 characters. SQLite, used locally, enforces no such
+ * limit either way.
  */
 return new class extends Migration
 {
@@ -28,8 +37,8 @@ return new class extends Migration
     {
         Schema::table('punchout_credentials', function (Blueprint $table): void {
             $table->dropUnique(['environment', 'to_domain', 'to_identity']);
-            $table->string('from_domain')->nullable()->after('environment');
-            $table->string('from_identity')->nullable()->after('from_domain');
+            $table->string('from_domain', 100)->nullable()->after('environment');
+            $table->string('from_identity', 100)->nullable()->after('from_domain');
         });
 
         DB::table('punchout_credentials')
