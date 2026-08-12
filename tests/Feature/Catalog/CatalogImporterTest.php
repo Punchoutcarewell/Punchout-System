@@ -4,11 +4,28 @@ declare(strict_types=1);
 
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Services\CatalogImporter;
+use App\Shared\Exceptions\DomainValidationException;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 function writeTestCatalogCsv(string $contents): string
 {
     $path = tempnam(sys_get_temp_dir(), 'catalog_import_').'.csv';
     file_put_contents($path, $contents);
+
+    return $path;
+}
+
+/**
+ * @param  array<int, array<int, mixed>>  $rows  including the header row
+ */
+function writeTestCatalogXlsx(array $rows): string
+{
+    $path = tempnam(sys_get_temp_dir(), 'catalog_import_').'.xlsx';
+
+    $spreadsheet = new Spreadsheet;
+    $spreadsheet->getActiveSheet()->fromArray($rows, null, 'A1');
+    (new Xlsx($spreadsheet))->save($path);
 
     return $path;
 }
@@ -112,6 +129,75 @@ it('reports a row with an invalid UNSPSC code instead of failing the whole impor
 
     expect($report->created)->toBe(0)
         ->and($report->issues)->toHaveCount(1);
+
+    unlink($path);
+});
+
+it('imports valid rows from an Excel (.xlsx) file the same way it does from CSV', function () {
+    $path = writeTestCatalogXlsx([
+        ['sku', 'name', 'category', 'unspsc_code', 'unit_of_measure', 'pack_size', 'list_price', 'currency'],
+        ['CW-4021', 'Foam Wound Dressing', 'Wound Care', '42311505', 'BX', 10, 25.99, 'AUD'],
+        ['CW-8890', 'Standard Wheelchair', 'Mobility', '42131601', 'EA', 1, 219.90, 'AUD'],
+    ]);
+
+    $report = (new CatalogImporter)->importFromExcelFile($path);
+    unlink($path);
+
+    expect($report->created)->toBe(2)
+        ->and($report->updated)->toBe(0)
+        ->and($report->hasIssues())->toBeFalse()
+        ->and(Product::query()->count())->toBe(2);
+
+    $product = Product::query()->where('sku', 'CW-4021')->firstOrFail();
+    expect($product->category?->name)->toBe('Wound Care')
+        ->and($product->list_price)->toBe('25.99');
+});
+
+it('reports an Excel row missing a required column instead of failing the whole import', function () {
+    $path = writeTestCatalogXlsx([
+        ['sku', 'name', 'unspsc_code', 'unit_of_measure', 'list_price', 'currency'],
+        ['CW-4021', 'Foam Wound Dressing', '42311505', 'BX', 25.99, 'AUD'],
+        ['', 'Missing SKU', '42311505', 'BX', 10.00, 'AUD'],
+    ]);
+
+    $report = (new CatalogImporter)->importFromExcelFile($path);
+    unlink($path);
+
+    expect($report->created)->toBe(1)
+        ->and($report->issues)->toHaveCount(1)
+        ->and($report->issues[0]->reason)->toContain('sku');
+});
+
+it('routes importFromFile() to the CSV reader for a .csv path', function () {
+    $path = writeTestCatalogCsv(
+        "sku,name,unspsc_code,unit_of_measure,list_price,currency\n"
+        ."CW-4021,Foam Wound Dressing,42311505,BX,25.99,AUD\n",
+    );
+
+    $report = (new CatalogImporter)->importFromFile($path);
+    unlink($path);
+
+    expect($report->created)->toBe(1);
+});
+
+it('routes importFromFile() to the Excel reader for a .xlsx path', function () {
+    $path = writeTestCatalogXlsx([
+        ['sku', 'name', 'unspsc_code', 'unit_of_measure', 'list_price', 'currency'],
+        ['CW-4021', 'Foam Wound Dressing', '42311505', 'BX', 25.99, 'AUD'],
+    ]);
+
+    $report = (new CatalogImporter)->importFromFile($path);
+    unlink($path);
+
+    expect($report->created)->toBe(1);
+});
+
+it('rejects a file extension that is neither CSV nor Excel', function () {
+    $path = tempnam(sys_get_temp_dir(), 'catalog_import_').'.txt';
+    file_put_contents($path, 'not a real catalogue file');
+
+    expect(fn () => (new CatalogImporter)->importFromFile($path))
+        ->toThrow(DomainValidationException::class);
 
     unlink($path);
 });
