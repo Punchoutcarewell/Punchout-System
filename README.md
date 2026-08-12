@@ -2,12 +2,12 @@
 
 A PunchOut catalogue integration for Carewell Group, connecting to Amazon Business buyers through Amazon's Coupa procurement instance. Buyers click through from Coupa, shop this storefront, and their cart is transferred back into Coupa as a requisition, using the cXML PunchOut protocol.
 
-This is not a general purpose storefront with a protocol bolted on. The cXML layer is the actual product, the storefront is the interface to it. See `carewell-punchout-architecture.md` (kept alongside this repository, not inside it) for the full system design and the reasoning behind it.
+This is not a general purpose storefront with a protocol bolted on. The cXML layer is the actual product, the storefront is the interface to it. See `carewell-punchout-architecture.md` (kept alongside this repository, not inside it) for the full system design and the reasoning behind it. See `CHANGELOG.md` for what changed and when.
 
 ## Stack
 
-- Laravel 12, PHP 8.3+
-- PostgreSQL in staging and production, sqlite for local development and the test suite
+- Laravel 12, PHP 8.2+
+- MySQL for local development, sqlite (in-memory) for the test suite. `config/database.php` still defaults to sqlite for a fresh clone, see "Getting started" below for switching a local database over to MySQL. Confirm the actual staging/production database driver with whoever currently owns deployment, that has moved between Azure App Service and GoDaddy hosting since this was first written and is tracked outside this module list.
 - cXML 1.2, the only protocol Coupa's own configuration accepts
 - Pest for testing, PHPStan at level 6, Pint for code style
 
@@ -17,13 +17,13 @@ A modular monolith, one deployable application internally split into modules wit
 
 | Module | Status | Owns |
 |---|---|---|
-| `Shared` | Done | `Money` and `UnspscCode` value objects, base exception hierarchy |
+| `Shared` | Done | `Money` and `UnspscCode` value objects, base exception hierarchy, `site_settings` (the configurable logo) |
 | `Punchout` | Done | cXML setup/start/order-request round trip, credential validation, session lifecycle, wire logging |
-| `Catalog` | Done | Products, categories, UNSPSC reference data, contract pricing, search, CSV import, `catalog:validate` |
-| `Cart` | Done | Cart state, quantity rules, the same-origin JSON cart API, the protocol-neutral snapshot Punchout's `OrderMessageBuilder` consumes |
-| `Orders` | Done | Purchase orders received from Coupa (via Punchout's `OrderRequestController`), queued notification email, idempotent on `po_number` |
+| `Catalog` | Done | Products, categories, UNSPSC reference data, contract pricing, search (name, SKU, description, UNSPSC code), stock tracking (`InventoryService`), CSV/Excel import and export, `catalog:validate` |
+| `Cart` | Done | Cart state, quantity rules (packs vs. plain units), the same-origin JSON cart API, the protocol-neutral snapshot Punchout's `OrderMessageBuilder` consumes |
+| `Orders` | Done | Purchase orders received from Coupa (via Punchout's `OrderRequestController`), catalogue reconciliation, inventory deduction, queued notification email, idempotent on `po_number` |
 | `Storefront` | Done | Vue 3 + Inertia.js pages, the composition layer over Catalog, Cart, and Punchout, the transfer-to-Coupa flow |
-| `Admin` | Done | Filament v3 panel: Product, Category, ContractPrice, PunchoutCredential (write-only secret), PurchaseOrder (read-only) |
+| `Admin` | Done | Filament v3 panel: Product (stock, activate/deactivate, import/export), Category, ContractPrice, PunchoutCredential (write-only secret), PurchaseOrder (read-only), a preview-token generator, dashboard, and site settings |
 
 Each module lives under `app/Modules/<Name>/` with its own `Contracts/`, `Models/`, `Services/`, `database/migrations/`, and its own service provider that registers its bindings, migrations, routes, and console commands. Nothing about a module needs to be scattered across a central kernel file to add it.
 
@@ -39,7 +39,9 @@ php artisan storage:link
 npm run build
 ```
 
-Local development runs on sqlite by default (`database/database.sqlite`, created automatically). No further setup is needed to run the app or the test suite. Staging and production are configured for PostgreSQL, credentials are environment-driven, never committed.
+Local development runs on sqlite by default (`database/database.sqlite`, created automatically). No further setup is needed to run the app or the test suite. Database credentials for any other environment (MySQL locally, or whatever staging/production currently run) are environment-driven, never committed.
+
+To switch a local install from sqlite to MySQL: create a database and a dedicated user (do not use `root` in `.env`), point `DB_CONNECTION`/`DB_HOST`/`DB_PORT`/`DB_DATABASE`/`DB_USERNAME`/`DB_PASSWORD` at it, run `php artisan migrate`, then `php artisan data:migrate-sqlite-to-mysql` if there is existing sqlite data worth keeping (it copies every real data table over once, skipping Laravel's own queue/cache/session tables, safe to re-run since a table already populated on the destination is left alone).
 
 `storage:link` is required for product images: the Admin panel's product image upload writes to the `public` disk (`storage/app/public`), served through the `public/storage` symlink that command creates. Without it, uploaded images 404/403 on every environment, this is easy to forget since nothing else in local dev depends on it.
 
@@ -71,10 +73,11 @@ All four run clean on every commit to `main`.
 ## Useful artisan commands
 
 ```bash
-php artisan punchout:simulate            # exercises the setup, start, and order-request round trip against this app's own endpoints
-php artisan punchout:doctor              # deployment sanity checks for punchout config that fails silently rather than loudly, run this in the deploy pipeline
-php artisan catalog:import <path>        # import a catalogue CSV, producing a report rather than failing silently
-php artisan catalog:validate             # fail if any active product is missing a UNSPSC code, contract price, unit of measure, or description
+php artisan punchout:simulate               # exercises the setup, start, and order-request round trip against this app's own endpoints
+php artisan punchout:doctor                 # deployment sanity checks for punchout config that fails silently rather than loudly, run this in the deploy pipeline
+php artisan catalog:import <path>           # import a catalogue CSV, producing a report rather than failing silently (CSV and Excel both work from the Admin Products page's Import button, this command is CSV-only)
+php artisan catalog:validate                # fail if any active product is missing a UNSPSC code, contract price, unit of measure, or description
+php artisan data:migrate-sqlite-to-mysql    # one-off: copy every real data table from the local sqlite file into the configured MySQL connection
 ```
 
 ## A note on the TypeScript version pin
@@ -90,3 +93,12 @@ php artisan catalog:validate             # fail if any active product is missing
 All three are flagged directly in the relevant code's docblocks and should be resolved once GPCS answers those questions.
 
 Separately, an internal gap rather than a GPCS question: PunchoutCredentialResource and ContractPriceResource have no audit trail of who changed a credential or a contract price, or when. Worth adding once there is a concrete need to answer that question, see PunchoutCredentialResource's docblock.
+
+## A note on where this code lives
+
+This repository is pushed to two remotes that are not kept in lockstep automatically:
+
+- `origin`, the original GitHub repository this project was built in.
+- `azure`, `https://github.com/acutehimanshu/punchout-systems`, where the actual Azure/GoDaddy deployment pipeline lives. Only its `UAT` branch is meant to receive our work, `main`/`master` there belong to whoever owns deployment and carry their own history (build workflow, hosting config) that does not exist on `origin`.
+
+`azure/UAT` and `origin/main` have unrelated git histories by now, a normal `git push` there will be rejected; reconciling the two branches has needed a manual merge more than once already. Before force-pushing `origin/main` onto `azure/UAT` again, fetch `azure` first and check what is actually on `UAT` and `azure/main`, past experience is that deployment-specific work lands there that does not exist anywhere in this repository's own history and is easy to silently overwrite.
