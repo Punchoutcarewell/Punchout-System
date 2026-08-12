@@ -39,6 +39,38 @@ it('creates a PurchaseOrder with its lines and queues a notification', function 
     Queue::assertPushed(ReconcilePurchaseOrder::class, fn ($job) => $job->purchaseOrderId === $purchaseOrder->id);
 });
 
+it('deducts inventory for each line SKU by the ordered quantity', function () {
+    Queue::fake();
+    $product = createTestProduct(['sku' => 'CW-4021', 'stock_quantity' => 50]);
+
+    app(PurchaseOrderService::class)->receive(sampleOrderRequestData('PO-STOCK'), '<raw-xml/>');
+
+    expect($product->refresh()->stock_quantity)->toBe(49);
+});
+
+it('still receives the purchase order, and lets stock go negative, when a line oversells what is on hand', function () {
+    Queue::fake();
+    $product = createTestProduct(['sku' => 'CW-4021', 'stock_quantity' => 0]);
+
+    $receipt = app(PurchaseOrderService::class)->receive(sampleOrderRequestData('PO-OVERSOLD'), '<raw-xml/>');
+
+    expect($receipt->wasAlreadyReceived)->toBeFalse()
+        ->and(PurchaseOrder::query()->where('po_number', 'PO-OVERSOLD')->exists())->toBeTrue()
+        ->and($product->refresh()->stock_quantity)->toBe(-1)
+        ->and($product->hasShortfall())->toBeTrue();
+});
+
+it('does not re-deduct inventory when the same po_number is received twice', function () {
+    Queue::fake();
+    $product = createTestProduct(['sku' => 'CW-4021', 'stock_quantity' => 50]);
+    $service = app(PurchaseOrderService::class);
+
+    $service->receive(sampleOrderRequestData('PO-DUPLICATE-STOCK'), '<raw-xml/>');
+    $service->receive(sampleOrderRequestData('PO-DUPLICATE-STOCK'), '<raw-xml/>');
+
+    expect($product->refresh()->stock_quantity)->toBe(49);
+});
+
 it('stores the punchout_session_id when the caller resolved one', function () {
     Queue::fake();
     $session = issueTestPunchoutSession();
