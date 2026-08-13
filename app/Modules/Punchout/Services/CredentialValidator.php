@@ -8,6 +8,7 @@ use App\Modules\Punchout\Data\CxmlHeaderData;
 use App\Modules\Punchout\Enums\PunchoutEnvironment;
 use App\Modules\Punchout\Exceptions\InvalidCredentialsException;
 use App\Modules\Punchout\Models\PunchoutCredential;
+use Illuminate\Support\Collection;
 
 /**
  * Authenticates an inbound cXML message (PunchOutSetupRequest or
@@ -56,5 +57,33 @@ final class CredentialValidator
         }
 
         return $credential;
+    }
+
+    /**
+     * Finds the active credential whose secret matches $secret alone, with
+     * no From/To identity to narrow the search first: used by
+     * StartController's GET /api/punchout/setup/{secret}, which has no
+     * cXML header, only a bare string off the URL. Every active credential
+     * in the current environment is compared via hash_equals() in turn,
+     * rather than a WHERE on shared_secret, since the column is encrypted
+     * at rest and never queryable by its plaintext value. Always reads the
+     * current row, so changing a credential's secret in Admin takes effect
+     * on the very next request, nothing here caches it.
+     */
+    public function findActiveBySharedSecret(string $secret): ?PunchoutCredential
+    {
+        return $this->activeCredentialsForCurrentEnvironment()
+            ->first(fn (PunchoutCredential $credential): bool => hash_equals((string) $credential->shared_secret, $secret));
+    }
+
+    /**
+     * @return Collection<int, PunchoutCredential>
+     */
+    private function activeCredentialsForCurrentEnvironment(): Collection
+    {
+        return PunchoutCredential::query()
+            ->where('environment', PunchoutEnvironment::current())
+            ->where('is_active', true)
+            ->get();
     }
 }

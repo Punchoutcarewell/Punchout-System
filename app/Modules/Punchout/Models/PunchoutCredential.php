@@ -36,6 +36,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $sender_identity
  * @property string $protocol
  * @property bool $is_active
+ * @property string|null $browser_form_post_url
  */
 final class PunchoutCredential extends Model
 {
@@ -52,6 +53,7 @@ final class PunchoutCredential extends Model
         'sender_identity',
         'protocol',
         'is_active',
+        'browser_form_post_url',
     ];
 
     protected $hidden = [

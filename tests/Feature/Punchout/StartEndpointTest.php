@@ -71,3 +71,63 @@ it('does not resolve an expired session and marks it expired', function () {
     $session = PunchoutSession::query()->where('token', $token)->firstOrFail();
     expect($session->status)->toBe(PunchoutSessionStatus::Expired);
 });
+
+it('creates a session directly from a credential\'s shared secret, no cXML round trip', function () {
+    createTestPunchoutCredential('ALD')->update(['browser_form_post_url' => 'https://coupa.example.com/cart/transfer']);
+
+    $response = $this->get('/api/punchout/setup/ALD');
+
+    $response->assertRedirect();
+
+    $session = PunchoutSession::query()->firstOrFail();
+    expect($session->is_preview)->toBeFalse()
+        ->and($session->browser_form_post_url)->toBe('https://coupa.example.com/cart/transfer')
+        ->and($session->from_identity)->toBe('COUPA1')
+        ->and($session->to_identity)->toBe('079928354');
+
+    $response->assertCookie(ResolvePunchoutSession::COOKIE_NAME, $session->token);
+});
+
+it('creates a distinct session on every hit of the same shared secret', function () {
+    createTestPunchoutCredential('ALD')->update(['browser_form_post_url' => 'https://coupa.example.com/cart/transfer']);
+
+    $this->get('/api/punchout/setup/ALD');
+    $this->get('/api/punchout/setup/ALD');
+
+    expect(PunchoutSession::query()->count())->toBe(2);
+});
+
+it('picks up a secret change in Admin on the very next hit', function () {
+    $credential = createTestPunchoutCredential('ALD');
+    $credential->update(['browser_form_post_url' => 'https://coupa.example.com/cart/transfer']);
+
+    $this->get('/api/punchout/setup/ALD')->assertRedirect();
+    expect(PunchoutSession::query()->count())->toBe(1);
+
+    $credential->update(['shared_secret' => 'NEW-SECRET']);
+
+    $this->get('/api/punchout/setup/ALD')->assertRedirect();
+    expect(PunchoutSession::query()->count())->toBe(1);
+
+    $this->get('/api/punchout/setup/NEW-SECRET')->assertRedirect();
+    expect(PunchoutSession::query()->count())->toBe(2);
+});
+
+it('redirects with an error for an inactive credential\'s secret', function () {
+    $credential = createTestPunchoutCredential('ALD');
+    $credential->update(['browser_form_post_url' => 'https://coupa.example.com/cart/transfer', 'is_active' => false]);
+
+    $response = $this->get('/api/punchout/setup/ALD');
+
+    $response->assertRedirect();
+    expect(PunchoutSession::query()->count())->toBe(0);
+});
+
+it('prefers resolving an existing session token over trying it as a shared secret', function () {
+    $token = issuePunchoutTokenForStartTest();
+
+    $response = $this->get("/api/punchout/setup/{$token}");
+
+    $response->assertRedirect();
+    expect(PunchoutSession::query()->count())->toBe(1);
+});

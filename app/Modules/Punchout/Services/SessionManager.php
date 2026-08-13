@@ -75,6 +75,24 @@ final class SessionManager implements SessionManagerInterface
         ]);
     }
 
+    public function startFromSharedSecret(PunchoutCredential $credential): PunchoutSession
+    {
+        return PunchoutSession::query()->create([
+            'token' => Str::random(64),
+            'buyer_cookie' => 'link-'.Str::uuid(),
+            'browser_form_post_url' => (string) $credential->browser_form_post_url,
+            'from_domain' => $credential->from_domain,
+            'from_identity' => $credential->from_identity,
+            'to_domain' => $credential->to_domain,
+            'to_identity' => $credential->to_identity,
+            'buyer_unique_name' => $credential->to_identity,
+            'operation' => PunchoutOperation::Create,
+            'is_preview' => false,
+            'status' => PunchoutSessionStatus::Active,
+            'expires_at' => Carbon::now()->addMinutes((int) config('punchout.session_ttl_minutes', 60)),
+        ]);
+    }
+
     public function resolve(string $token): ?PunchoutSession
     {
         $session = PunchoutSession::query()->where('token', $token)->first();
