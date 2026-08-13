@@ -2,6 +2,16 @@
 
 Notable changes to the Carewell PunchOut catalogue, grouped by day rather than by release: this project does not tag versions, `main` is the running state. Each entry links the change to its actual commit(s) where useful for digging into the "why."
 
+## 2026-08-13
+
+### Changed
+- The browser-facing start URL moved from `/punchout/start?token=...` to `/punchout/setup/{token}`, sharing a path with `POST /punchout/setup` and disambiguated by HTTP method. The cookie-based session is unchanged; the query-string fallback for browsers that block third-party cookies inside Coupa's iframe is unchanged.
+- Every PunchOut endpoint (`POST /punchout/setup`, `GET /punchout/setup/{token}`, `POST /punchout/order`) moved under `/api`, at GPCS's request: anything processing raw cXML rather than serving HTML sits under `/api` in this deployment, whether or not the caller is a browser. Route names, session handling, and the cookie/query-string fallback redirect all stayed the same.
+
+### Added
+- A "Generate" action on the shared secret field in Admin's PunchOut Credential form, filling a random 64-character value in the same format `SessionManager` already issues.
+- Revoke / Reactivate actions on the PunchOut Credential table, toggling `is_active` with a confirmation step, so a compromised or retired credential can be disabled without deleting its row.
+
 ## 2026-08-12
 
 ### Added

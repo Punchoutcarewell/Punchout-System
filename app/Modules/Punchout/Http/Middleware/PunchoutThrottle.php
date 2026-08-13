@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
- * Rate limits /punchout/setup and /punchout/order without going through
+ * Rate limits /api/punchout/setup and /api/punchout/order without going through
  * Laravel's standard throttle: middleware, for two reasons neither of
  * which that middleware can do:
  *

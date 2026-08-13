@@ -10,7 +10,7 @@ it('sets baseline security headers on a normal web response', function () {
 });
 
 it('sets baseline security headers on a cXML response, which runs outside the web middleware group', function () {
-    $response = $this->call('POST', '/punchout/setup', content: '<not-xml', server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/setup', content: '<not-xml', server: ['CONTENT_TYPE' => 'text/xml']);
 
     expect($response->headers->get('X-Content-Type-Options'))->toBe('nosniff')
         ->and($response->headers->get('Referrer-Policy'))->toBe('strict-origin-when-cross-origin');

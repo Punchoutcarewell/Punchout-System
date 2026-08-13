@@ -11,7 +11,7 @@ function issuePunchoutTokenForStartTest(): string
     createTestPunchoutCredential('ALD');
 
     $xml = (string) file_get_contents(base_path('tests/Fixtures/Cxml/setup_request.xml'));
-    test()->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    test()->call('POST', '/api/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     return PunchoutSession::query()->firstOrFail()->token;
 }
@@ -19,7 +19,7 @@ function issuePunchoutTokenForStartTest(): string
 it('binds the session and sets a SameSite=None; Secure; Partitioned cookie', function () {
     $token = issuePunchoutTokenForStartTest();
 
-    $response = $this->get("/punchout/setup/{$token}");
+    $response = $this->get("/api/punchout/setup/{$token}");
 
     $response->assertRedirect();
 
@@ -39,7 +39,7 @@ it('binds the session and sets a SameSite=None; Secure; Partitioned cookie', fun
 });
 
 it('redirects with an error and sets no cookie for an unknown token', function () {
-    $response = $this->get('/punchout/setup/does-not-exist');
+    $response = $this->get('/api/punchout/setup/does-not-exist');
 
     $response->assertRedirect();
 
@@ -50,11 +50,11 @@ it('redirects with an error and sets no cookie for an unknown token', function (
 });
 
 it('has no route at all for a request with no token segment, the token is required', function () {
-    // GET on the exact path /punchout/setup (POST-only, PunchOutSetupRequest)
+    // GET on the exact path /api/punchout/setup (POST-only, PunchOutSetupRequest)
     // matches that URI but not this method, a 405, not a 404: proof the
-    // two /punchout/setup routes really are disambiguated by method
+    // two /api/punchout/setup routes really are disambiguated by method
     // rather than one silently shadowing the other.
-    $response = $this->get('/punchout/setup');
+    $response = $this->get('/api/punchout/setup');
 
     $response->assertStatus(405);
 });
@@ -64,7 +64,7 @@ it('does not resolve an expired session and marks it expired', function () {
 
     PunchoutSession::query()->where('token', $token)->update(['expires_at' => now()->subMinute()]);
 
-    $response = $this->get("/punchout/setup/{$token}");
+    $response = $this->get("/api/punchout/setup/{$token}");
 
     $response->assertRedirect();
 

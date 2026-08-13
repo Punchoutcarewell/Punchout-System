@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 /**
  * Deployment sanity checks for configuration that is silently wrong
  * rather than loudly broken: nothing about a misconfigured
- * frame-ancestors value causes /punchout/setup or /punchout/order to
+ * frame-ancestors value causes /api/punchout/setup or /api/punchout/order to
  * fail, Coupa's server-to-server calls work fine either way. It is only
  * the buyer's browser refusing to render the storefront inside Coupa's
  * iframe, visible as a CSP violation in the browser console, not

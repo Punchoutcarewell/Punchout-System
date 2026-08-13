@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Baseline security headers applied to every response, registered as
  * global middleware in bootstrap/app.php rather than the "web" group
- * alone, so it also covers /punchout/setup and /punchout/order, which
+ * alone, so it also covers /api/punchout/setup and /api/punchout/order, which
  * deliberately run outside "web" (see Punchout\routes.php).
  *
  * Deliberately does not set X-Frame-Options: this storefront is meant to

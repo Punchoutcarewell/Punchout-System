@@ -80,7 +80,7 @@ function createTestCategory(string $name = 'Wound Care'): Category
 }
 
 /**
- * Runs a real /punchout/setup request to get a genuinely bound
+ * Runs a real /api/punchout/setup request to get a genuinely bound
  * PunchoutSession, the same round trip a browser would go through, rather
  * than inserting a session row by hand.
  */
@@ -90,7 +90,7 @@ function issueTestPunchoutSession(): PunchoutSession
 
     $xml = (string) file_get_contents(dirname(__DIR__).'/tests/Fixtures/Cxml/setup_request.xml');
 
-    test()->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    test()->call('POST', '/api/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     return PunchoutSession::query()->firstOrFail();
 }
