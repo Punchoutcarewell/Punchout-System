@@ -6,8 +6,10 @@ namespace App\Modules\Admin\Filament\Resources\ProductResource\Pages;
 
 use App\Modules\Admin\Filament\Resources\ProductResource;
 use App\Modules\Catalog\Data\CatalogImportReport;
+use App\Modules\Catalog\Data\ProductImageBulkUploadReport;
 use App\Modules\Catalog\Services\CatalogExporter;
 use App\Modules\Catalog\Services\CatalogImporter;
+use App\Modules\Catalog\Services\ProductImageBulkUploader;
 use App\Shared\Exceptions\DomainValidationException;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -64,6 +66,28 @@ final class ListProducts extends ListRecords
                     }
                 }),
 
+            Action::make('bulkUploadImages')
+                ->label('Upload images')
+                ->icon('heroicon-o-photo')
+                ->color('gray')
+                ->form([
+                    FileUpload::make('images')
+                        ->label('Image files')
+                        ->required()
+                        ->multiple()
+                        ->image()
+                        ->preserveFilenames()
+                        ->disk('public')
+                        ->directory('products')
+                        ->visibility('public')
+                        ->helperText('Matched to products by filename: a product whose image_path column (from Import) is "CW-9013.jpg" gets whichever uploaded file is named exactly that.'),
+                ])
+                ->action(function (array $data): void {
+                    $report = app(ProductImageBulkUploader::class)->applyUploadedImages($data['images']);
+
+                    $this->notifyBulkImageUploadReport($report);
+                }),
+
             ActionGroup::make([
                 Action::make('exportCsv')
                     ->label('CSV')
@@ -107,6 +131,31 @@ final class ListProducts extends ListRecords
         Notification::make()
             ->title($title)
             ->body(count($report->issues)." row(s) skipped:\n{$preview}")
+            ->warning()
+            ->persistent()
+            ->send();
+    }
+
+    private function notifyBulkImageUploadReport(ProductImageBulkUploadReport $report): void
+    {
+        $title = "Uploaded: {$report->matched} matched to a product";
+
+        if (! $report->hasUnmatched()) {
+            Notification::make()->title($title)->success()->send();
+
+            return;
+        }
+
+        $preview = collect($report->unmatchedFilenames)->take(5)->implode("\n");
+        $remaining = count($report->unmatchedFilenames) - 5;
+
+        if ($remaining > 0) {
+            $preview .= "\n… and {$remaining} more.";
+        }
+
+        Notification::make()
+            ->title($title)
+            ->body(count($report->unmatchedFilenames)." file(s) had no matching product's image_path:\n{$preview}")
             ->warning()
             ->persistent()
             ->send();

@@ -105,7 +105,13 @@ final class ProductResource extends Resource
                         ->directory('products')
                         ->visibility('public')
                         ->maxSize(5120)
-                        ->imageEditor(),
+                        ->imageEditor()
+                        // Stored under the exact name it was uploaded with
+                        // (not Filament's default random one), the same
+                        // convention every image upload in the app follows:
+                        // see ProductImageBulkUploader, which matches an
+                        // uploaded file to a product by this filename.
+                        ->preserveFilenames(),
                     Toggle::make('is_active')->default(true),
                 ]),
         ]);

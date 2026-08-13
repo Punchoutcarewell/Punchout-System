@@ -12,6 +12,8 @@ Notable changes to the Carewell PunchOut catalogue, grouped by day rather than b
 - A "Generate" action on the shared secret field in Admin's PunchOut Credential form, filling a random 64-character value in the same format `SessionManager` already issues.
 - Revoke / Reactivate actions on the PunchOut Credential table, toggling `is_active` with a confirmation step, so a compromised or retired credential can be disabled without deleting its row.
 - `GET /api/punchout/setup/{token}` now also accepts a credential's shared secret directly in place of a session token: Coupa can reach the storefront with a single GET, no cXML `PunchOutSetupRequest` POST first. A session is created on the spot and the buyer lands on `/storefront?token=...` referencing it, same as the real cXML flow. The secret and a new "Return URL" field (where the finished cart posts back to Coupa) are both managed in Admin's PunchOut Credential form; changing either takes effect on the very next request.
+- A "Upload images" action next to Import/Export on the Admin Products page: upload a batch of image files at once, and each is applied to whichever product's `image_path` (set via CSV/Excel import, which can reference an image that isn't on this server yet) matches its filename exactly. A notification reports how many matched and lists any that didn't.
+- Every image upload in Admin (product image, this new bulk uploader, and the site logo) now keeps its original filename on disk instead of Filament's default random one, via `FileUpload::preserveFilenames()`. This is what makes filename-matched bulk upload possible, and also makes storage browsable by eye.
 
 ## 2026-08-12
 

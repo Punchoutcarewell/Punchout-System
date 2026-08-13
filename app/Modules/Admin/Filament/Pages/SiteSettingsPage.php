@@ -54,6 +54,7 @@ final class SiteSettingsPage extends Page implements HasForms
                     ->visibility('public')
                     ->maxSize(2048)
                     ->imageEditor()
+                    ->preserveFilenames()
                     ->helperText('Shown in the Admin panel sidebar and the storefront header. SVG or PNG with a transparent background works best. Leave empty to use the default text branding.'),
             ])
             ->statePath('data');
