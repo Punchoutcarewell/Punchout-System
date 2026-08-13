@@ -20,8 +20,17 @@ use Illuminate\Support\Facades\Route;
 | guarantee that is for them to start with no middleware at all rather
 | than trying to strip web-group middleware back off afterward.
 |
-| /punchout/start is the one browser-facing route here and opts into the
-| "web" group explicitly, since it needs cookies to bind the session.
+| GET /punchout/setup/{token} is the one browser-facing route here and
+| opts into the "web" group explicitly, since it needs cookies to bind
+| the session. It deliberately shares a path prefix with the POST
+| /punchout/setup above, that is a different route (disambiguated by
+| HTTP method, an exact "/punchout/setup" match never matches the
+| "/punchout/setup/{token}" pattern), not a naming accident: this is
+| still the same PunchOutSetupRequest/StartPage handshake from cXML's
+| point of view, just the two different legs of it. The route name
+| stays punchout.start, that is what StartController's docblock and
+| every route('punchout.start', ...) call site expect, only the URL
+| shape changed.
 |
 */
 
@@ -34,5 +43,5 @@ Route::post('/punchout/order', [OrderRequestController::class, 'handle'])
     ->name('punchout.order');
 
 Route::middleware(['web'])
-    ->get('/punchout/start', [StartController::class, 'handle'])
+    ->get('/punchout/setup/{token}', [StartController::class, 'handle'])
     ->name('punchout.start');
