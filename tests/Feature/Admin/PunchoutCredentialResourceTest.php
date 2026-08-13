@@ -142,3 +142,109 @@ it('never shows the shared secret in the table listing', function () {
     Livewire::test(ListPunchoutCredentials::class)
         ->assertDontSee('TopSecret123');
 });
+
+it('fills the secret field with a random 64-character value via the Generate action', function () {
+    actingAsAdmin();
+
+    $component = Livewire::test(CreatePunchoutCredential::class)
+        ->mountFormComponentAction('shared_secret', 'generate');
+
+    $generated = $component->get('data.shared_secret');
+
+    expect($generated)->toBeString()
+        ->and(strlen($generated))->toBe(64);
+});
+
+it('generates a different value on every click, not a cached one', function () {
+    actingAsAdmin();
+
+    $component = Livewire::test(CreatePunchoutCredential::class)
+        ->mountFormComponentAction('shared_secret', 'generate');
+    $first = $component->get('data.shared_secret');
+
+    $component->mountFormComponentAction('shared_secret', 'generate');
+    $second = $component->get('data.shared_secret');
+
+    expect($first)->not->toBe($second);
+});
+
+it('revokes an active credential, taking it out of authentication', function () {
+    actingAsAdmin();
+
+    $credential = PunchoutCredential::query()->create([
+        'environment' => PunchoutEnvironment::Test,
+        'from_domain' => 'DUNS',
+        'from_identity' => 'COUPA1',
+        'to_domain' => 'DUNS',
+        'to_identity' => '079928354',
+        'shared_secret' => 'TopSecret123',
+        'sender_domain' => 'DUNS',
+        'sender_identity' => 'COUPA1',
+        'protocol' => 'cxml',
+        'is_active' => true,
+    ]);
+
+    Livewire::test(ListPunchoutCredentials::class)
+        ->callTableAction('revoke', $credential);
+
+    expect($credential->refresh()->is_active)->toBeFalse();
+});
+
+it('reactivates a revoked credential', function () {
+    actingAsAdmin();
+
+    $credential = PunchoutCredential::query()->create([
+        'environment' => PunchoutEnvironment::Test,
+        'from_domain' => 'DUNS',
+        'from_identity' => 'COUPA1',
+        'to_domain' => 'DUNS',
+        'to_identity' => '079928354',
+        'shared_secret' => 'TopSecret123',
+        'sender_domain' => 'DUNS',
+        'sender_identity' => 'COUPA1',
+        'protocol' => 'cxml',
+        'is_active' => false,
+    ]);
+
+    Livewire::test(ListPunchoutCredentials::class)
+        ->callTableAction('reactivate', $credential);
+
+    expect($credential->refresh()->is_active)->toBeTrue();
+});
+
+it('only offers Revoke on an active credential and Reactivate on a revoked one', function () {
+    actingAsAdmin();
+
+    $active = PunchoutCredential::query()->create([
+        'environment' => PunchoutEnvironment::Test,
+        'from_domain' => 'DUNS',
+        'from_identity' => 'COUPA1',
+        'to_domain' => 'DUNS',
+        'to_identity' => 'ACTIVE-ONE',
+        'shared_secret' => 'TopSecret123',
+        'sender_domain' => 'DUNS',
+        'sender_identity' => 'COUPA1',
+        'protocol' => 'cxml',
+        'is_active' => true,
+    ]);
+
+    $revoked = PunchoutCredential::query()->create([
+        'environment' => PunchoutEnvironment::Test,
+        'from_domain' => 'DUNS',
+        'from_identity' => 'COUPA1',
+        'to_domain' => 'DUNS',
+        'to_identity' => 'REVOKED-ONE',
+        'shared_secret' => 'TopSecret123',
+        'sender_domain' => 'DUNS',
+        'sender_identity' => 'COUPA1',
+        'protocol' => 'cxml',
+        'is_active' => false,
+    ]);
+
+    $list = Livewire::test(ListPunchoutCredentials::class);
+
+    $list->assertTableActionVisible('revoke', $active)
+        ->assertTableActionHidden('reactivate', $active)
+        ->assertTableActionVisible('reactivate', $revoked)
+        ->assertTableActionHidden('revoke', $revoked);
+});

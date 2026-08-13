@@ -19,7 +19,7 @@ function issuePunchoutTokenForStartTest(): string
 it('binds the session and sets a SameSite=None; Secure; Partitioned cookie', function () {
     $token = issuePunchoutTokenForStartTest();
 
-    $response = $this->get("/punchout/start?token={$token}");
+    $response = $this->get("/punchout/setup/{$token}");
 
     $response->assertRedirect();
 
@@ -39,7 +39,7 @@ it('binds the session and sets a SameSite=None; Secure; Partitioned cookie', fun
 });
 
 it('redirects with an error and sets no cookie for an unknown token', function () {
-    $response = $this->get('/punchout/start?token=does-not-exist');
+    $response = $this->get('/punchout/setup/does-not-exist');
 
     $response->assertRedirect();
 
@@ -49,10 +49,14 @@ it('redirects with an error and sets no cookie for an unknown token', function (
     expect($cookie)->toBeNull();
 });
 
-it('redirects with an error for a missing token', function () {
-    $response = $this->get('/punchout/start');
+it('has no route at all for a request with no token segment, the token is required', function () {
+    // GET on the exact path /punchout/setup (POST-only, PunchOutSetupRequest)
+    // matches that URI but not this method, a 405, not a 404: proof the
+    // two /punchout/setup routes really are disambiguated by method
+    // rather than one silently shadowing the other.
+    $response = $this->get('/punchout/setup');
 
-    $response->assertRedirect();
+    $response->assertStatus(405);
 });
 
 it('does not resolve an expired session and marks it expired', function () {
@@ -60,7 +64,7 @@ it('does not resolve an expired session and marks it expired', function () {
 
     PunchoutSession::query()->where('token', $token)->update(['expires_at' => now()->subMinute()]);
 
-    $response = $this->get("/punchout/start?token={$token}");
+    $response = $this->get("/punchout/setup/{$token}");
 
     $response->assertRedirect();
 

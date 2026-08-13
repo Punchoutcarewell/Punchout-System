@@ -7,27 +7,30 @@ namespace App\Modules\Punchout\Http\Controllers;
 use App\Modules\Punchout\Contracts\SessionManagerInterface;
 use App\Modules\Punchout\Http\Middleware\ResolvePunchoutSession;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
- * GET /punchout/start?token=...
+ * GET /punchout/setup/{token}
  *
  * The browser's entry point into the storefront, reached via the redirect
- * Coupa performs after PunchOutSetupResponse returns a StartPage URL.
+ * Coupa performs after PunchOutSetupResponse returns a StartPage URL. The
+ * token is a required path segment, not a query parameter, see routes.php
+ * for why this shares a path prefix with POST /punchout/setup without
+ * being the same route.
+ *
  * Binds the session, sets the session cookie with SameSite=None; Secure;
  * Partitioned so it survives Coupa's iframe embedding, and redirects with
- * the token still on the URL as the fallback for a browser that blocks
- * the cookie this same request just tried to set.
+ * the token still on the URL (there, as a query parameter, unrelated to
+ * this route's own shape) as the fallback for a browser that blocks the
+ * cookie this same request just tried to set.
  */
 final class StartController
 {
     public function __construct(private readonly SessionManagerInterface $sessions) {}
 
-    public function handle(Request $request): RedirectResponse
+    public function handle(string $token): RedirectResponse
     {
-        $token = (string) $request->query('token', '');
-        $session = $token !== '' ? $this->sessions->resolve($token) : null;
+        $session = $this->sessions->resolve($token);
 
         if ($session === null) {
             return redirect()->route('storefront.session-expired');
