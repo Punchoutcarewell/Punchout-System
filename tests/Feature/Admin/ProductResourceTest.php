@@ -6,6 +6,8 @@ use App\Modules\Admin\Filament\Resources\ProductResource\Pages\CreateProduct;
 use App\Modules\Admin\Filament\Resources\ProductResource\Pages\EditProduct;
 use App\Modules\Admin\Filament\Resources\ProductResource\Pages\ListProducts;
 use App\Modules\Catalog\Models\Product;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 it('lists products', function () {
@@ -89,6 +91,32 @@ it('reactivates a product with a single click on the list table', function () {
         ->call('updateTableColumnState', 'is_active', (string) $product->getKey(), true);
 
     expect($product->refresh()->is_active)->toBeTrue();
+});
+
+it('stores an uploaded product image under its original filename, not a random one', function () {
+    Storage::fake('public');
+    actingAsAdmin();
+
+    Livewire::test(CreateProduct::class)
+        ->fillForm([
+            'sku' => 'CW-4021',
+            'supplier_part_id' => 'CW-4021',
+            'name' => 'Foam Wound Dressing',
+            'description' => 'Foam dressing pack of 10',
+            'unspsc_code' => '42311505',
+            'unit_of_measure' => 'BX',
+            'lead_time_days' => 2,
+            'list_price' => '25.99',
+            'currency' => 'AUD',
+            'image_path' => UploadedFile::fake()->image('CW-4021.jpg'),
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $product = Product::query()->where('sku', 'CW-4021')->firstOrFail();
+
+    expect($product->image_path)->toBe('products/CW-4021.jpg');
+    Storage::disk('public')->assertExists('products/CW-4021.jpg');
 });
 
 it('edits an existing product', function () {

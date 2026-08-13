@@ -33,6 +33,13 @@ use Throwable;
  * not been confirmed against a real export from Carewell's catalogue
  * source system (see roadmap Stage 0.1, "SKU count and catalogue source
  * format") and should be checked once that format is known.
+ *
+ * image_path is stored exactly as given, a bare filename ("CW-9013.jpg"),
+ * a full URL, or empty, no validation that anything exists at it: the
+ * image itself almost never lives on this server yet at import time. See
+ * ProductImageBulkUploader, which later matches an uploaded batch of
+ * image files to products by comparing each file's name against this
+ * column's last path segment, and replaces it with the real local path.
  */
 final class CatalogImporter
 {
