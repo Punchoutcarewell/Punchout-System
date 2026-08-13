@@ -11,7 +11,7 @@ it('accepts a valid setup request and creates a session', function () {
 
     $xml = (string) file_get_contents(base_path('tests/Fixtures/Cxml/setup_request.xml'));
 
-    $response = $this->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     $response->assertStatus(200);
     expect($response->getContent())->toContain('code="200"')
@@ -36,7 +36,7 @@ it('honours X-Forwarded-Proto so the StartPage URL is https behind a proxy', fun
 
     $xml = (string) file_get_contents(base_path('tests/Fixtures/Cxml/setup_request.xml'));
 
-    $response = $this->call('POST', '/punchout/setup', content: $xml, server: [
+    $response = $this->call('POST', '/api/punchout/setup', content: $xml, server: [
         'CONTENT_TYPE' => 'text/xml',
         'HTTP_X_FORWARDED_PROTO' => 'https',
         'HTTP_X_FORWARDED_FOR' => '203.0.113.7',
@@ -51,7 +51,7 @@ it('rejects a request with the wrong shared secret and creates no session', func
 
     $xml = (string) file_get_contents(base_path('tests/Fixtures/Cxml/setup_request.xml')); // carries SharedSecret "ALD"
 
-    $response = $this->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     $response->assertStatus(401);
     expect($response->getContent())->toContain('code="401"');
@@ -59,7 +59,7 @@ it('rejects a request with the wrong shared secret and creates no session', func
 });
 
 it('rejects malformed XML with a valid cXML error response, not an HTML error page', function () {
-    $response = $this->call('POST', '/punchout/setup', content: '<not-xml', server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/setup', content: '<not-xml', server: ['CONTENT_TYPE' => 'text/xml']);
 
     $response->assertStatus(400);
     expect($response->getContent())->toContain('<?xml')
@@ -74,7 +74,7 @@ it('still returns a well-formed cXML error, never a bare 500, when something ent
 
     $xml = (string) file_get_contents(base_path('tests/Fixtures/Cxml/setup_request.xml'));
 
-    $response = $this->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     $response->assertStatus(500);
     expect($response->getContent())->toContain('<?xml')
@@ -87,7 +87,7 @@ it('logs the raw payload with the shared secret redacted', function () {
 
     $xml = (string) file_get_contents(base_path('tests/Fixtures/Cxml/setup_request.xml'));
 
-    $this->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $this->call('POST', '/api/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     $log = PunchoutLog::query()->where('message_type', 'setup_request')->first();
 

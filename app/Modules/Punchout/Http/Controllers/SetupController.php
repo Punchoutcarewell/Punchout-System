@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * POST /punchout/setup
+ * POST /api/punchout/setup
  *
  * No CSRF, no session middleware: this is a raw XML endpoint Coupa's
  * server posts to directly, not a browser request. Every response,

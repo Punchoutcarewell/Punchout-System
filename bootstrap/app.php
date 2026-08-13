@@ -32,8 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             | Request::HEADER_X_FORWARDED_PORT
             | Request::HEADER_X_FORWARDED_PROTO);
 
-        // Appended globally, not just to the "web" group: /punchout/setup
-        // and /punchout/order deliberately run outside "web" (see
+        // Appended globally, not just to the "web" group: /api/punchout/setup
+        // and /api/punchout/order deliberately run outside "web" (see
         // Punchout\routes.php) and should still get baseline headers.
         $middleware->append(SecurityHeaders::class);
 

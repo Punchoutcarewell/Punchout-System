@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * POST /punchout/order
+ * POST /api/punchout/order
  *
  * Receives the purchase order Coupa sends after the buyer submits their
  * requisition (cXML OrderRequest), if cXML ends up being the PO
@@ -34,7 +34,7 @@ use Throwable;
  * Header/Sender/Credential/SharedSecret and CredentialValidator: an
  * inbound OrderRequest carries a complete cXML Header exactly like the
  * setup request does, so there is no reason this endpoint should accept
- * unauthenticated input while /punchout/setup does not. The safe default
+ * unauthenticated input while /api/punchout/setup does not. The safe default
  * while that stayed unconfirmed was closed, not open.
  *
  * Turning the parsed OrderRequestData into a PurchaseOrder business record

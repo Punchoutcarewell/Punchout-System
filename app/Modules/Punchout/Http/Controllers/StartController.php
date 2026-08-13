@@ -10,12 +10,12 @@ use Illuminate\Http\RedirectResponse;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
- * GET /punchout/setup/{token}
+ * GET /api/punchout/setup/{token}
  *
  * The browser's entry point into the storefront, reached via the redirect
  * Coupa performs after PunchOutSetupResponse returns a StartPage URL. The
  * token is a required path segment, not a query parameter, see routes.php
- * for why this shares a path prefix with POST /punchout/setup without
+ * for why this shares a path prefix with POST /api/punchout/setup without
  * being the same route.
  *
  * Binds the session, sets the session cookie with SameSite=None; Secure;

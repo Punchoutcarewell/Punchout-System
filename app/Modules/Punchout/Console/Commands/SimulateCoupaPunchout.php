@@ -101,8 +101,8 @@ final class SimulateCoupaPunchout extends Command
         $setupXml = $this->buildSetupRequestXml($buyerCookie);
         $setupResponse = null;
 
-        $this->components->task('POST /punchout/setup', function () use (&$setupResponse, $baseUrl, $setupXml): bool {
-            $setupResponse = Http::withBody($setupXml, 'text/xml')->post("{$baseUrl}/punchout/setup");
+        $this->components->task('POST /api/punchout/setup', function () use (&$setupResponse, $baseUrl, $setupXml): bool {
+            $setupResponse = Http::withBody($setupXml, 'text/xml')->post("{$baseUrl}/api/punchout/setup");
 
             return $setupResponse->successful();
         });
@@ -148,8 +148,8 @@ final class SimulateCoupaPunchout extends Command
         $orderXml = $this->buildOrderRequestXml();
         $orderResponse = null;
 
-        $this->components->task('POST /punchout/order', function () use (&$orderResponse, $baseUrl, $orderXml): bool {
-            $orderResponse = Http::withBody($orderXml, 'text/xml')->post("{$baseUrl}/punchout/order");
+        $this->components->task('POST /api/punchout/order', function () use (&$orderResponse, $baseUrl, $orderXml): bool {
+            $orderResponse = Http::withBody($orderXml, 'text/xml')->post("{$baseUrl}/api/punchout/order");
 
             return $orderResponse->successful();
         });

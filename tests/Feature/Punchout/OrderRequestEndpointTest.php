@@ -40,7 +40,7 @@ it('accepts a well-formed OrderRequest, creates a PurchaseOrder, and acknowledge
     </cXML>
     XML;
 
-    $response = $this->call('POST', '/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     $response->assertStatus(200);
     expect($response->getContent())->toContain('code="200"');
@@ -88,7 +88,7 @@ it('links the PurchaseOrder to the punchout session when the OrderRequest echoes
     </cXML>
     XML;
 
-    $this->call('POST', '/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml'])
+    $this->call('POST', '/api/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml'])
         ->assertStatus(200);
 
     expect(PurchaseOrder::query()->where('po_number', 'PO-LINKED')->firstOrFail()->punchout_session_id)->toBe($session->id);
@@ -125,15 +125,15 @@ it('does not create a second PurchaseOrder for a resent po_number', function () 
     </cXML>
     XML;
 
-    $this->call('POST', '/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
-    $this->call('POST', '/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $this->call('POST', '/api/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $this->call('POST', '/api/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     expect(PurchaseOrder::query()->where('po_number', 'PO-DUPLICATE')->count())->toBe(1);
     Queue::assertPushed(SendPurchaseOrderNotification::class, 1);
 });
 
 it('logs before parsing is attempted, even when parsing fails, without ever storing genuinely unparseable content raw', function () {
-    $response = $this->call('POST', '/punchout/order', content: '<not-xml', server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/order', content: '<not-xml', server: ['CONTENT_TYPE' => 'text/xml']);
 
     $response->assertStatus(400);
     expect($response->getContent())->toContain('code="400"')
@@ -152,7 +152,7 @@ it('logs before parsing is attempted, even when parsing fails, without ever stor
 });
 
 it('does not create a duplicate log row for the same request', function () {
-    $this->call('POST', '/punchout/order', content: '<not-xml', server: ['CONTENT_TYPE' => 'text/xml']);
+    $this->call('POST', '/api/punchout/order', content: '<not-xml', server: ['CONTENT_TYPE' => 'text/xml']);
 
     expect(PunchoutLog::query()->where('message_type', PunchoutMessageType::OrderRequest->value)->count())->toBe(1);
 });
@@ -188,7 +188,7 @@ it('rejects an OrderRequest with no matching credential', function () {
     // Deliberately no createTestPunchoutCredential(): this is the C4 fix,
     // an OrderRequest from an identity with no active credential must be
     // rejected, not accepted and written to purchase_orders.
-    $response = $this->call('POST', '/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/order', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     $response->assertStatus(401);
     expect($response->getContent())->toContain('code="401"');
@@ -200,7 +200,7 @@ it('still returns a well-formed cXML error, never a bare 500, when something ent
         $mock->shouldReceive('parseOrderRequest')->andThrow(new RuntimeException('unexpected native failure'));
     });
 
-    $response = $this->call('POST', '/punchout/order', content: '<cXML></cXML>', server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/order', content: '<cXML></cXML>', server: ['CONTENT_TYPE' => 'text/xml']);
 
     $response->assertStatus(500);
     expect($response->getContent())->toContain('<?xml')

@@ -27,11 +27,11 @@ it('rejects the 31st request within a minute from the same From identity with we
     $xml = punchoutSetupXmlFrom('BUYER-THROTTLE-A');
 
     for ($i = 0; $i < 30; $i++) {
-        $response = $this->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+        $response = $this->call('POST', '/api/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
         expect($response->getStatusCode())->not->toBe(429);
     }
 
-    $response = $this->call('POST', '/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/setup', content: $xml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     $response->assertStatus(429);
     expect($response->getContent())->toContain('<?xml')
@@ -45,34 +45,34 @@ it('keys the limit by the From identity, so a different buyer identity is not bl
     $exhausted = punchoutSetupXmlFrom('BUYER-THROTTLE-B');
 
     for ($i = 0; $i < 31; $i++) {
-        $this->call('POST', '/punchout/setup', content: $exhausted, server: ['CONTENT_TYPE' => 'text/xml']);
+        $this->call('POST', '/api/punchout/setup', content: $exhausted, server: ['CONTENT_TYPE' => 'text/xml']);
     }
 
-    $this->call('POST', '/punchout/setup', content: $exhausted, server: ['CONTENT_TYPE' => 'text/xml'])
+    $this->call('POST', '/api/punchout/setup', content: $exhausted, server: ['CONTENT_TYPE' => 'text/xml'])
         ->assertStatus(429);
 
     $otherBuyer = punchoutSetupXmlFrom('BUYER-THROTTLE-C');
 
-    $response = $this->call('POST', '/punchout/setup', content: $otherBuyer, server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/setup', content: $otherBuyer, server: ['CONTENT_TYPE' => 'text/xml']);
 
     expect($response->getStatusCode())->not->toBe(429);
 });
 
 it('falls back to keying by IP for a body it cannot parse, rather than skipping throttling entirely', function () {
     for ($i = 0; $i < 30; $i++) {
-        $response = $this->call('POST', '/punchout/setup', content: '<not-xml', server: [
+        $response = $this->call('POST', '/api/punchout/setup', content: '<not-xml', server: [
             'CONTENT_TYPE' => 'text/xml',
             'REMOTE_ADDR' => '203.0.113.50',
         ]);
         expect($response->getStatusCode())->not->toBe(429);
     }
 
-    $this->call('POST', '/punchout/setup', content: '<not-xml', server: [
+    $this->call('POST', '/api/punchout/setup', content: '<not-xml', server: [
         'CONTENT_TYPE' => 'text/xml',
         'REMOTE_ADDR' => '203.0.113.50',
     ])->assertStatus(429);
 
-    $response = $this->call('POST', '/punchout/setup', content: '<not-xml', server: [
+    $response = $this->call('POST', '/api/punchout/setup', content: '<not-xml', server: [
         'CONTENT_TYPE' => 'text/xml',
         'REMOTE_ADDR' => '203.0.113.99',
     ]);
@@ -80,14 +80,14 @@ it('falls back to keying by IP for a body it cannot parse, rather than skipping 
     expect($response->getStatusCode())->not->toBe(429);
 });
 
-it('applies the same throttling to /punchout/order, keyed independently of /punchout/setup', function () {
+it('applies the same throttling to /api/punchout/order, keyed independently of /api/punchout/setup', function () {
     $setupXml = punchoutSetupXmlFrom('BUYER-THROTTLE-D');
 
     for ($i = 0; $i < 30; $i++) {
-        $this->call('POST', '/punchout/setup', content: $setupXml, server: ['CONTENT_TYPE' => 'text/xml']);
+        $this->call('POST', '/api/punchout/setup', content: $setupXml, server: ['CONTENT_TYPE' => 'text/xml']);
     }
 
-    $this->call('POST', '/punchout/setup', content: $setupXml, server: ['CONTENT_TYPE' => 'text/xml'])
+    $this->call('POST', '/api/punchout/setup', content: $setupXml, server: ['CONTENT_TYPE' => 'text/xml'])
         ->assertStatus(429);
 
     $orderXml = <<<'XML'
@@ -109,7 +109,7 @@ it('applies the same throttling to /punchout/order, keyed independently of /punc
     </cXML>
     XML;
 
-    $response = $this->call('POST', '/punchout/order', content: $orderXml, server: ['CONTENT_TYPE' => 'text/xml']);
+    $response = $this->call('POST', '/api/punchout/order', content: $orderXml, server: ['CONTENT_TYPE' => 'text/xml']);
 
     expect($response->getStatusCode())->not->toBe(429);
 });
