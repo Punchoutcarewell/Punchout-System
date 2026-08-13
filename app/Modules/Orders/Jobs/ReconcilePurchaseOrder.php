@@ -16,7 +16,7 @@ use Illuminate\Queue\SerializesModels;
  * Queued for the same reason SendPurchaseOrderNotification is: reconciling
  * against the catalogue means calling into Catalog's PricingService, and
  * none of that should be able to slow down or fail the cXML Response
- * Coupa is waiting on for /punchout/order.
+ * Coupa is waiting on for /api/punchout/order.
  */
 final class ReconcilePurchaseOrder implements ShouldQueue
 {

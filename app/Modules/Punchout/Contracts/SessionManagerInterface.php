@@ -34,6 +34,17 @@ interface SessionManagerInterface
     public function startPreview(PunchoutCredential $credential, string $label): PunchoutSession;
 
     /**
+     * Create a session directly from a credential whose shared secret was
+     * presented as a URL path segment (see StartController), with no cXML
+     * PunchOutSetupRequest round trip. Identity fields are copied from
+     * $credential, browser_form_post_url comes from $credential's own
+     * configured Return URL, and buyer_cookie is a synthetic,
+     * session-scoped value, there being no per-request BuyerCookie without
+     * a cXML body. is_preview stays false: this is real buyer traffic.
+     */
+    public function startFromSharedSecret(PunchoutCredential $credential): PunchoutSession;
+
+    /**
      * Look up a session by its token. Returns null if the token is
      * unknown, expired, or already transferred, expiry is enforced here,
      * not left to the caller to check. A session in the Transferring

@@ -80,3 +80,25 @@ it('encrypts the shared secret at rest', function () {
 
     expect($rawColumnValue)->not->toBe('ALD');
 });
+
+it('finds an active credential by its shared secret alone, with no From/To identity given', function () {
+    createTestPunchoutCredential('ALD');
+
+    $credential = (new CredentialValidator)->findActiveBySharedSecret('ALD');
+
+    expect($credential)->not->toBeNull()
+        ->and($credential->to_identity)->toBe('079928354');
+});
+
+it('returns null rather than throwing for an unrecognised secret', function () {
+    createTestPunchoutCredential('ALD');
+
+    expect((new CredentialValidator)->findActiveBySharedSecret('not-a-real-secret'))->toBeNull();
+});
+
+it('does not find an inactive credential by its shared secret', function () {
+    $credential = createTestPunchoutCredential('ALD');
+    $credential->update(['is_active' => false]);
+
+    expect((new CredentialValidator)->findActiveBySharedSecret('ALD'))->toBeNull();
+});
