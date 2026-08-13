@@ -37,8 +37,8 @@ return new class extends Migration
     {
         Schema::table('punchout_credentials', function (Blueprint $table): void {
             $table->dropUnique(['environment', 'to_domain', 'to_identity']);
-            $table->string('from_domain', 100)->nullable()->after('environment');
-            $table->string('from_identity', 100)->nullable()->after('from_domain');
+            $table->string('from_domain')->nullable()->after('environment');
+            $table->string('from_identity')->nullable()->after('from_domain');
         });
 
         DB::table('punchout_credentials')
@@ -49,9 +49,21 @@ return new class extends Migration
         // alteration (which needs doctrine/dbal on some drivers): every
         // row is backfilled above, and the Admin form makes both fields
         // required for anything created from here on.
-        Schema::table('punchout_credentials', function (Blueprint $table): void {
-            $table->unique(['environment', 'to_domain', 'to_identity', 'from_domain', 'from_identity'], 'punchout_credentials_full_identity_unique');
-        });
+        //
+        // environment(20) + four utf8mb4 varchar(255) columns at full
+        // width totals 4160 bytes, over InnoDB's 3072-byte index key
+        // limit. A 150-character prefix on each identity column keeps
+        // uniqueness meaningful (cXML identities are realistically far
+        // shorter) while fitting the limit; MySQL silently tolerating
+        // the full-width key on some server configurations and not
+        // others is exactly why this can't be left to chance.
+        if (in_array(DB::getDriverName(), ['mysql', 'mariadb'], true)) {
+            DB::statement('ALTER TABLE punchout_credentials ADD UNIQUE INDEX punchout_credentials_full_identity_unique (environment, to_domain(150), to_identity(150), from_domain(150), from_identity(150))');
+        } else {
+            Schema::table('punchout_credentials', function (Blueprint $table): void {
+                $table->unique(['environment', 'to_domain', 'to_identity', 'from_domain', 'from_identity'], 'punchout_credentials_full_identity_unique');
+            });
+        }
     }
 
     public function down(): void
