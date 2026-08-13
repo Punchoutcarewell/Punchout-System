@@ -38,6 +38,10 @@ use Illuminate\Support\Facades\Route;
 | every route('punchout.start', ...) call site expect, only the URL
 | shape changed.
 |
+| {token} also doubles as a credential's shared secret, letting Coupa
+| reach the storefront with a single GET and no cXML POST first. See
+| StartController.
+|
 */
 
 Route::post('/api/punchout/setup', [SetupController::class, 'handle'])

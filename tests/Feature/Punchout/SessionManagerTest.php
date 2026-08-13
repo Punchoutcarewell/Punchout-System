@@ -73,3 +73,31 @@ it('resolves a preview session\'s outbound identity, since its identity fields a
 
     expect(fn () => $manager->resolveOutboundIdentity($session))->not->toThrow(InvalidCredentialsException::class);
 });
+
+it('builds a real, non-preview session directly from a credential\'s shared secret, no cXML round trip', function () {
+    $credential = createTestPunchoutCredential('ALD');
+    $credential->update(['browser_form_post_url' => 'https://coupa.example.com/cart/transfer']);
+    $manager = app(SessionManager::class);
+
+    $session = $manager->startFromSharedSecret($credential);
+
+    expect($session->is_preview)->toBeFalse()
+        ->and($session->status)->toBe(PunchoutSessionStatus::Active)
+        ->and($session->browser_form_post_url)->toBe('https://coupa.example.com/cart/transfer')
+        ->and($session->from_domain)->toBe($credential->from_domain)
+        ->and($session->from_identity)->toBe($credential->from_identity)
+        ->and($session->to_domain)->toBe($credential->to_domain)
+        ->and($session->to_identity)->toBe($credential->to_identity)
+        ->and($session->buyer_cookie)->not->toBeEmpty();
+});
+
+it('creates a fresh session every time startFromSharedSecret is called for the same credential', function () {
+    $credential = createTestPunchoutCredential('ALD');
+    $credential->update(['browser_form_post_url' => 'https://coupa.example.com/cart/transfer']);
+    $manager = app(SessionManager::class);
+
+    $first = $manager->startFromSharedSecret($credential);
+    $second = $manager->startFromSharedSecret($credential);
+
+    expect($first->token)->not->toBe($second->token);
+});

@@ -23,6 +23,7 @@ it('creates a credential with the secret encrypted at rest', function () {
             'sender_domain' => 'DUNS',
             'sender_identity' => 'COUPA1',
             'shared_secret' => 'TopSecret123',
+            'browser_form_post_url' => 'https://coupa.example.com/cart/transfer',
             'is_active' => true,
         ])
         ->call('create')
@@ -52,6 +53,45 @@ it('requires a secret on create', function () {
         ])
         ->call('create')
         ->assertHasFormErrors(['shared_secret']);
+});
+
+it('requires a return URL on create', function () {
+    actingAsAdmin();
+
+    Livewire::test(CreatePunchoutCredential::class)
+        ->fillForm([
+            'environment' => 'test',
+            'from_domain' => 'DUNS',
+            'from_identity' => 'COUPA1',
+            'to_domain' => 'DUNS',
+            'to_identity' => '079928354',
+            'sender_domain' => 'DUNS',
+            'sender_identity' => 'COUPA1',
+            'shared_secret' => 'TopSecret123',
+            'is_active' => true,
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['browser_form_post_url']);
+});
+
+it('rejects a return URL that is not a valid URL', function () {
+    actingAsAdmin();
+
+    Livewire::test(CreatePunchoutCredential::class)
+        ->fillForm([
+            'environment' => 'test',
+            'from_domain' => 'DUNS',
+            'from_identity' => 'COUPA1',
+            'to_domain' => 'DUNS',
+            'to_identity' => '079928354',
+            'sender_domain' => 'DUNS',
+            'sender_identity' => 'COUPA1',
+            'shared_secret' => 'TopSecret123',
+            'browser_form_post_url' => 'not-a-url',
+            'is_active' => true,
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['browser_form_post_url']);
 });
 
 it('never pre-fills the secret field when editing', function () {
@@ -88,6 +128,7 @@ it('leaves the secret unchanged when the field is left blank on save', function 
         'sender_identity' => 'COUPA1',
         'protocol' => 'cxml',
         'is_active' => true,
+        'browser_form_post_url' => 'https://coupa.example.com/cart/transfer',
     ]);
 
     Livewire::test(EditPunchoutCredential::class, ['record' => $credential->getRouteKey()])
@@ -113,6 +154,7 @@ it('changes the secret when a new value is typed on save', function () {
         'sender_identity' => 'COUPA1',
         'protocol' => 'cxml',
         'is_active' => true,
+        'browser_form_post_url' => 'https://coupa.example.com/cart/transfer',
     ]);
 
     Livewire::test(EditPunchoutCredential::class, ['record' => $credential->getRouteKey()])

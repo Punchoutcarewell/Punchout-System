@@ -86,6 +86,12 @@ final class PunchoutCredentialResource extends Resource
                     TextInput::make('sender_identity')
                         ->label('Sender identity')
                         ->required(),
+                    TextInput::make('browser_form_post_url')
+                        ->label('Return URL')
+                        ->url()
+                        ->required()
+                        ->columnSpanFull()
+                        ->helperText('Where a cart transfers back to Coupa after GET /api/punchout/setup/{secret}.'),
                 ]),
             Section::make('Secret')
                 ->schema([
