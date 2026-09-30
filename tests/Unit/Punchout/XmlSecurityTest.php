@@ -21,6 +21,30 @@ it('rejects XML that is not well-formed', function () {
     XmlSecurity::loadSafely('<cXML><Unclosed></cXML>');
 })->throws(MalformedCxmlException::class);
 
+it('reports where a raw unescaped ampersand broke the document', function () {
+    $xml = "<cXML>\n<Name>Carewell Health & Medical</Name>\n</cXML>";
+
+    try {
+        XmlSecurity::loadSafely($xml);
+        $this->fail('Expected MalformedCxmlException.');
+    } catch (MalformedCxmlException $exception) {
+        expect($exception->getMessage())->toContain('not well-formed XML')
+            ->and($exception->getMessage())->toContain('line 2, column');
+    }
+});
+
+it('never quotes payload content, which could be a secret, in its diagnostics', function () {
+    $xml = '<cXML><SharedSecret>top&secretvalue;x</SharedSecret></cXML>';
+
+    try {
+        XmlSecurity::loadSafely($xml);
+        $this->fail('Expected MalformedCxmlException.');
+    } catch (MalformedCxmlException $exception) {
+        expect($exception->getMessage())->not->toContain('secretvalue')
+            ->and(json_encode($exception->context()))->not->toContain('secretvalue');
+    }
+});
+
 it('never expands a local-file external entity', function () {
     $malicious = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
