@@ -6,7 +6,7 @@ This is not a general purpose storefront with a protocol bolted on. The cXML lay
 
 ## Stack
 
-- Laravel 12, PHP 8.2+
+- Laravel 12, PHP 8.3+ (composer platform is pinned to 8.3.0)
 - MySQL for local development, sqlite (in-memory) for the test suite. `config/database.php` still defaults to sqlite for a fresh clone, see "Getting started" below for switching a local database over to MySQL. Confirm the actual staging/production database driver with whoever currently owns deployment, that has moved between Azure App Service and GoDaddy hosting since this was first written and is tracked outside this module list.
 - cXML 1.2, the only protocol Coupa's own configuration accepts
 - Pest for testing, PHPStan at level 6, Pint for code style
@@ -93,6 +93,15 @@ php artisan data:migrate-sqlite-to-mysql    # one-off: copy every real data tabl
 All three are flagged directly in the relevant code's docblocks and should be resolved once GPCS answers those questions.
 
 Separately, an internal gap rather than a GPCS question: PunchoutCredentialResource and ContractPriceResource have no audit trail of who changed a credential or a contract price, or when. Worth adding once there is a concrete need to answer that question, see PunchoutCredentialResource's docblock.
+
+## Hosting
+
+The current staging deployment runs on Hostinger shared hosting (PHP 8.3) on a Hostinger temporary domain. Layout: the app lives outside the web root, `public_html` holds only a small `index.php` front controller plus symlinks to `public/build`, `public/css`, `public/js` and `storage/app/public`. Things specific to that host:
+
+- `proc_open` is disabled in php.ini, so run composer and artisan as `php -d disable_functions= artisan ...`.
+- There is no Node and no `crontab` over SSH: build the frontend locally (`npm run build`) and create the cron jobs in hPanel (`queue:work --stop-when-empty` and `schedule:run`, both every minute).
+- Database and user names are prefixed with the account id (for example `u863275371_cw_punchout`).
+- The `.env` file must live outside `public_html`.
 
 ## A note on where this code lives
 
