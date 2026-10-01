@@ -57,6 +57,18 @@ it('refuses the BuyerCookie of a real, non-preview session', function () {
         ->and($response->getContent())->toContain('code="403"');
 });
 
+it('accepts a secret-link session whose return URL points back at this endpoint, for testing', function () {
+    $credential = createTestPunchoutCredential('ALD');
+    $credential->update(['browser_form_post_url' => 'https://example.test/admin/punchout-preview/complete']);
+    $session = app(SessionManagerInterface::class)->startFromSharedSecret($credential);
+
+    $response = $this->post('/admin/punchout-preview/complete', ['cxml-urlencoded' => previewCxml($session->buyer_cookie)]);
+
+    $response->assertOk();
+    expect($response->headers->get('Content-Type'))->toContain('text/xml')
+        ->and($response->getContent())->toContain($session->buyer_cookie);
+});
+
 it('refuses missing or malformed cXML with a cXML fault', function (string $payload) {
     $response = $this->post('/admin/punchout-preview/complete', ['cxml-urlencoded' => $payload]);
 

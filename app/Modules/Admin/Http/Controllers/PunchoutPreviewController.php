@@ -24,11 +24,15 @@ use Throwable;
  * wrapped around it.
  *
  * Authorisation is the session itself rather than an admin login: the
- * posted cXML must carry the BuyerCookie of an existing preview session
- * (a real buyer session never matches, see SessionManager::startPreview()
- * and is_preview). Nothing is stored or sent anywhere, so the only thing
- * this endpoint can ever do is echo back a message the app itself built
- * for a preview session, it is not a general purpose XML echo.
+ * posted cXML must carry the BuyerCookie of a session that is meant to
+ * return here, either a preview session (see SessionManager::startPreview()
+ * and is_preview) or a session whose own return URL was deliberately set to
+ * this endpoint, which is how a credential is pointed back at this app for
+ * testing before Coupa supplies its real checkout URL. A normal buyer
+ * session returns to Coupa's URL and never matches. Nothing is stored or
+ * sent anywhere, so the only thing this endpoint can ever do is echo back a
+ * message the app itself built for such a session, it is not a general
+ * purpose XML echo.
  */
 final class PunchoutPreviewController
 {
@@ -47,11 +51,13 @@ final class PunchoutPreviewController
         $isPreviewSession = $buyerCookie !== ''
             && PunchoutSession::query()
                 ->where('buyer_cookie', $buyerCookie)
-                ->where('is_preview', true)
+                ->where(fn ($query) => $query
+                    ->where('is_preview', true)
+                    ->orWhere('browser_form_post_url', 'like', '%/admin/punchout-preview/complete'))
                 ->exists();
 
         if (! $isPreviewSession) {
-            return $this->fault(403, 'Not a preview session.');
+            return $this->fault(403, 'Not a session that returns to this endpoint.');
         }
 
         $document->formatOutput = true;
