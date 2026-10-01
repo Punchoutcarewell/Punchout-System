@@ -2,6 +2,14 @@
 
 Notable changes to the Carewell PunchOut catalogue, grouped by day rather than by release: this project does not tag versions, `main` is the running state. Each entry links the change to its actual commit(s) where useful for digging into the "why."
 
+## 2026-10-01
+
+### Changed
+- Minimum PHP raised from 8.2 to 8.3 (`composer.json` requirement and composer platform pin). The earlier 8.2/8.1 floor only existed because of the GoDaddy host. The lock file only changed its platform metadata, no packages were upgraded.
+
+### Added
+- Staging deployment on Hostinger shared hosting (PHP 8.3) with a MySQL database, replacing the local machine plus Cloudflare Tunnel setup. See the new "Hosting" section in the README for the layout and host-specific quirks.
+
 ## 2026-08-13
 
 ### Changed
