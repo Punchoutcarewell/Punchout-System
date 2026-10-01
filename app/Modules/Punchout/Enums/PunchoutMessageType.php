@@ -16,4 +16,7 @@ enum PunchoutMessageType: string
     case OrderMessage = 'order_message';
     case OrderRequest = 'order_request';
     case OrderResponse = 'order_response';
+
+    /** A cXML body sent to a URL that is not a real PunchOut endpoint and is neither a setup nor an order request. */
+    case Unrecognised = 'unrecognised';
 }

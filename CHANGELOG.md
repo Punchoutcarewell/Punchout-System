@@ -9,6 +9,8 @@ Notable changes to the Carewell PunchOut catalogue, grouped by day rather than b
 
 ### Added
 - Staging deployment on Hostinger shared hosting (PHP 8.3) with a MySQL database, replacing the local machine plus Cloudflare Tunnel setup. See the new "Hosting" section in the README for the layout and host-specific quirks.
+- `RouteMisdirectedCxml` middleware: a cXML request sent to the wrong URL (for example a buyer configured with `/storefront` or an admin page as its PunchOut or PO URL) is no longer answered with an HTML page, which made the buyer's XML parser fail with an unhelpful `Illegal character "&"` error. A `PunchOutSetupRequest` or `OrderRequest` is forwarded internally to `/api/punchout/setup` or `/api/punchout/order`, so credential validation, throttling and logging all still apply. Any other cXML body gets a well-formed cXML 400 fault naming the correct URLs. Requests without an XML body (browsers) are unaffected.
+- `unrecognised` punchout log type: misdirected cXML that is neither a setup nor an order request is recorded in `punchout_logs` (rate limited to 30 per minute per IP), where previously it left no trace.
 
 ## 2026-08-13
 

@@ -212,7 +212,7 @@ it('still answers an OrderRequest with cXML, not an HTML 500, when the inbound l
     expect($response->getContent())->toContain('code="500"');
 });
 
-it('keeps /admin/punchout-preview/complete an admin-only preview, never a buyer endpoint', function () {
+it('keeps /admin/punchout-preview/complete an admin-only preview for browsers, forwarding only cXML', function () {
     Queue::fake();
     createTestPunchoutCredential(FLOW_TEST_SECRET);
 
@@ -223,19 +223,35 @@ it('keeps /admin/punchout-preview/complete an admin-only preview, never a buyer 
     expect(PunchoutSession::query()->sole()->browser_form_post_url)
         ->not->toBe(route('admin.punchout-preview.complete'));
 
-    // An OrderRequest posted to the preview URL by a buyer's server gets
-    // the admin login redirect, not a cXML acknowledgement, and no order.
-    $this->call('POST', '/admin/punchout-preview/complete', content: flowTestOrderRequest(), server: ['CONTENT_TYPE' => 'text/xml'])
+    // A browser posting to the preview URL still gets the admin login
+    // redirect: only a cXML body is ever forwarded (see
+    // RouteMisdirectedCxml), and only to the real order endpoint.
+    $this->post('/admin/punchout-preview/complete', ['cxml-urlencoded' => 'x'])
         ->assertRedirect('/admin/login');
 
     expect(PurchaseOrder::query()->count())->toBe(0);
+
+    // An OrderRequest posted to the preview URL by a buyer's server is
+    // forwarded to the real order endpoint: it is answered with cXML, never
+    // the admin login page, and is authenticated by its SharedSecret like
+    // any other order.
+    $response = $this->call('POST', '/admin/punchout-preview/complete', content: flowTestOrderRequest(), server: ['CONTENT_TYPE' => 'text/xml']);
+
+    $response->assertOk();
+    expectControlledCxmlFailure((string) $response->getContent());
+    expect($response->getContent())->toContain('code="200"')
+        ->and(PurchaseOrder::query()->count())->toBe(1);
 });
 
-it('is not a cXML endpoint at /storefront, which only serves the browser', function () {
+it('forwards a cXML setup request misdirected to /storefront, while the browser still gets the page', function () {
     createTestPunchoutCredential(FLOW_TEST_SECRET);
 
     $response = $this->call('POST', '/storefront', content: flowTestSetupRequest(), server: ['CONTENT_TYPE' => 'text/xml']);
 
-    $response->assertStatus(405);
-    expect(PunchoutSession::query()->count())->toBe(0);
+    $response->assertOk();
+    expect($response->getContent())->toContain('<StartPage>')
+        ->and(PunchoutSession::query()->count())->toBe(1);
+
+    // No cXML body, so it is a browser request and /storefront has no POST route.
+    $this->post('/storefront', ['a' => 'b'])->assertStatus(405);
 });
