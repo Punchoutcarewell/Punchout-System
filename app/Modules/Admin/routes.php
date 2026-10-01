@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Modules\Admin\Http\Controllers\PunchoutPreviewController;
-use Filament\Http\Middleware\Authenticate;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,6 +17,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', Authenticate::class])
+Route::middleware(['web'])
     ->post('/admin/punchout-preview/complete', [PunchoutPreviewController::class, 'complete'])
     ->name('admin.punchout-preview.complete');

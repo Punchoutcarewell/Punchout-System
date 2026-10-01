@@ -4,6 +4,10 @@ Notable changes to the Carewell PunchOut catalogue, grouped by day rather than b
 
 ## 2026-10-01
 
+### Fixed
+- A preview session (Admin, Test Token Generator) now completes its whole transaction on its own, with no admin login. "Transfer cart to Coupa" used to post to `/admin/punchout-preview/complete`, which sat behind the Admin login and sent the buyer to the login page. The endpoint is now authorised by the session itself (the posted cXML must carry a preview session's `BuyerCookie`; a real buyer session or any other XML is refused with a cXML fault).
+- That endpoint now returns the raw cXML `PunchOutOrderMessage` as `text/xml`, not an HTML page with the cXML inside it. The `admin.punchout-preview-complete` Blade view is gone.
+
 ### Changed
 - Minimum PHP raised from 8.2 to 8.3 (`composer.json` requirement and composer platform pin). The earlier 8.2/8.1 floor only existed because of the GoDaddy host. The lock file only changed its platform metadata, no packages were upgraded.
 

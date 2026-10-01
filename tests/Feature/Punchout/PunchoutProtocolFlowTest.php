@@ -212,7 +212,7 @@ it('still answers an OrderRequest with cXML, not an HTML 500, when the inbound l
     expect($response->getContent())->toContain('code="500"');
 });
 
-it('keeps /admin/punchout-preview/complete an admin-only preview for browsers, forwarding only cXML', function () {
+it('keeps /admin/punchout-preview/complete a preview-only endpoint, forwarding only cXML bodies', function () {
     Queue::fake();
     createTestPunchoutCredential(FLOW_TEST_SECRET);
 
@@ -223,11 +223,11 @@ it('keeps /admin/punchout-preview/complete an admin-only preview for browsers, f
     expect(PunchoutSession::query()->sole()->browser_form_post_url)
         ->not->toBe(route('admin.punchout-preview.complete'));
 
-    // A browser posting to the preview URL still gets the admin login
-    // redirect: only a cXML body is ever forwarded (see
-    // RouteMisdirectedCxml), and only to the real order endpoint.
+    // A form post to the preview URL that is not a preview session's
+    // cart is refused with cXML (no admin login, but no echo either):
+    // only a message built for a preview session is ever returned.
     $this->post('/admin/punchout-preview/complete', ['cxml-urlencoded' => 'x'])
-        ->assertRedirect('/admin/login');
+        ->assertStatus(400);
 
     expect(PurchaseOrder::query()->count())->toBe(0);
 
