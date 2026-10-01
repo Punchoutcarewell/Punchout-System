@@ -44,17 +44,35 @@ final class XmlSecurity
         libxml_use_internal_errors($previousSetting);
 
         if (! $loaded) {
-            $messages = array_map(
-                static fn (LibXMLError $error): string => trim($error->message),
-                $errors,
-            );
+            $messages = array_map(self::describe(...), $errors);
+
+            // The first error's position is carried in the message itself,
+            // since the message is what reaches punchout_logs.error and the
+            // punchout log channel: an unparseable payload is stored only
+            // as a hash (see CxmlSecretRedactor), so "line 30, column 58"
+            // is the only evidence left of where the sender's XML broke,
+            // e.g. a raw unescaped "&".
+            $position = $messages !== [] ? ' ('.$messages[0].')' : '';
 
             throw MalformedCxmlException::withContext(
-                'The request body is not well-formed XML.',
+                "The request body is not well-formed XML{$position}.",
                 ['libxml_errors' => $messages],
             );
         }
 
         return $document;
+    }
+
+    /**
+     * libxml quotes fragments of the payload in some messages (entity
+     * names, attribute values), which could be part of a SharedSecret, so
+     * anything quoted is dropped: the code, line, and column are what
+     * locate the problem, never the content itself.
+     */
+    private static function describe(LibXMLError $error): string
+    {
+        $message = (string) preg_replace('/([\'"]).*?\1/s', '[...]', trim($error->message));
+
+        return "libxml {$error->code} at line {$error->line}, column {$error->column}: {$message}";
     }
 }
