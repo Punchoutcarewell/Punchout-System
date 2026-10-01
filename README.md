@@ -36,7 +36,7 @@ cp .env.example .env
 php artisan key:generate
 php artisan migrate
 php artisan storage:link
-npm run build
+npm run build 
 ```
 
 Local development runs on sqlite by default (`database/database.sqlite`, created automatically). No further setup is needed to run the app or the test suite. Database credentials for any other environment (MySQL locally, or whatever staging/production currently run) are environment-driven, never committed.

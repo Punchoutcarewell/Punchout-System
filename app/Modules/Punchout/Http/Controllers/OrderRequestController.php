@@ -55,10 +55,13 @@ final class OrderRequestController
     public function handle(Request $request): Response
     {
         $rawXml = $request->getContent();
-
-        $log = $this->logger->logInbound(PunchoutMessageType::OrderRequest, $rawXml);
+        $log = null;
 
         try {
+            // Inside the net, not before it: a failed log write must still
+            // answer with cXML, never Laravel's HTML 500 page.
+            $log = $this->logger->logInbound(PunchoutMessageType::OrderRequest, $rawXml);
+
             return $this->process($rawXml, $log);
         } catch (Throwable $exception) {
             // See SetupController::handle() for why this net exists and
@@ -69,7 +72,9 @@ final class OrderRequestController
                     'error' => $exception->getMessage(),
                 ]);
 
-                $this->logger->updateStatus($log, 500, $exception->getMessage());
+                if ($log !== null) {
+                    $this->logger->updateStatus($log, 500, $exception->getMessage());
+                }
             } catch (Throwable) {
                 // Logging itself failing must never stop the fallback
                 // response below from reaching Coupa.
